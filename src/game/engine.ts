@@ -59,7 +59,8 @@ import {
 import { runAITurn, type AIEngineAPI } from './ai';
 import { createInitialAgeState, runAgeFrameworkTurn } from './ages/ageFramework';
 import { decideAiSettlementResponse } from './diplomacySettlementAi';
-import { findNextStepToward, findLeastCostMovementPath } from './pathfinding';
+import { findLeastCostMovementPath } from './pathfinding';
+import { findStrategicNextStep } from './aiPathfinding';
 import {
   productionReserveCap,
   productionReserveCost,
@@ -348,35 +349,14 @@ function findSpawnCellForUnit(state: GameState, city: City, unitType: UnitType):
   return null;
 }
 
+/** AI world-scale path selection. Actual moves still pass through moveUnit validation. */
 export function bestNeighborToward(
   s: GameState,
   unit: Unit,
   targetQ: number,
   targetR: number
 ): { q: number; r: number } | null {
-  const pathStep = findNextStepToward(s, unit, targetQ, targetR);
-  if (pathStep) return pathStep;
-  const w = s.tiles[0].length;
-  const h = s.tiles.length;
-  const neigh = getNeighbors(unit.q, unit.r, w, h);
-  let best: { q: number; r: number; d: number } | null = null;
-  for (const n of neigh) {
-    const t = s.tiles[n.r]?.[n.q];
-    if (!t) continue;
-    const stepCost = tileMovementEnterCost(t.terrain, unit.type, {
-      state: s,
-      civIndex: unit.owner,
-      fromQ: unit.q,
-      fromR: unit.r,
-      toQ: n.q,
-      toR: n.r,
-    });
-    if (stepCost == null || stepCost > unit.movement) continue;
-    if (!canFriendlyStackOnTile(s, unit.owner, unit.type, n.q, n.r, unit.id)) continue;
-    const d = hexDistance(n.q, n.r, targetQ, targetR);
-    if (!best || d < best.d) best = { q: n.q, r: n.r, d };
-  }
-  return best ? { q: best.q, r: best.r } : null;
+  return findStrategicNextStep(s, unit, targetQ, targetR);
 }
 
 export function moveUnitGroup(state: GameState, unitIds: number[], toQ: number, toR: number): GameState {

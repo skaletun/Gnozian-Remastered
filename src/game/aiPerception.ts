@@ -121,8 +121,10 @@ export function createFogLimitedAIAPI(api: AIEngineAPI, runtime: FogRuntime): AI
     canDeclareWar: (_state, civA, civB) => api.canDeclareWar(runtime.getActual(), civA, civB),
     areAtWar: (_state, civA, civB) => api.areAtWar(runtime.getActual(), civA, civB),
     isMilitarilyEngaged: (_state, civA, civB) => api.isMilitarilyEngaged(runtime.getActual(), civA, civB),
+    // Route selection sees only the AI's perceived terrain and visible units.
+    // Physical move validation uses the authoritative actual game state.
     bestNeighborToward: (_state, unit, targetQ, targetR) =>
-      api.bestNeighborToward(runtime.getActual(), unit, targetQ, targetR),
+      api.bestNeighborToward(_state, unit, targetQ, targetR),
     calcTileYield: tile => api.calcTileYield(tile),
     canFriendlyStackOnTile: (_state, owner, unitType, q, r, excludeUnitId) =>
       api.canFriendlyStackOnTile(runtime.getActual(), owner, unitType, q, r, excludeUnitId),
