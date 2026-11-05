@@ -28,7 +28,7 @@ import {
   specialistCapForCity,
 } from '../game/systems/settlementCore';
 import { t } from '../i18n';
-import { GnozianGlyph, GnozianPanelCorners, type GnozianGlyphName } from './ui';
+import { GnozianGlyph, GnozianPanelCorners } from './ui';
 import { useLayoutProfile } from '../hooks/useLayoutProfile';
 import { GnzResourceIcon } from './ui/GnzResourceIcon';
 
@@ -54,15 +54,6 @@ function tl(key: string, fallback: string): string {
   return v === key ? fallback : v;
 }
 
-const YIELD_GLYPH: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith' | 'happiness', GnozianGlyphName> = {
-  food: 'food',
-  production: 'cog',
-  gold: 'trophy',
-  science: 'flask',
-  culture: 'culture',
-  faith: 'religion',
-  happiness: 'sparkles',
-};
 
 const DISTRICT_BUILD_ORDER: DistrictType[] = [
   'rural_farms',
