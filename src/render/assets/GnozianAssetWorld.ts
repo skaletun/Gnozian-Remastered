@@ -76,8 +76,8 @@ export class GnozianAssetWorld {
     }
     for(const live of this.live.values()){
       if(!live.actor && now >= live.nextAmbientAt) {
-        if(live.wish.kind==='resources' && FAUNA.has(live.wish.id)) this.play(live,live.wish.id==='fish'?'swim':'graze');
-        else if(live.wish.kind==='units' && (live.wish.id==='worker'||live.wish.id.startsWith('great_')))this.play(live,live.wish.id==='worker'?'work':'gesture');
+        if(live.wish.kind==='resources' && FAUNA.has(live.wish.id)) this.play(live,live.clip==='idle'?(live.wish.id==='fish'?'swim':'graze'):'idle');
+        else if(live.wish.kind==='units' && (live.wish.id==='worker'||live.wish.id.startsWith('great_')))this.play(live,live.clip==='idle'?(live.wish.id==='worker'?'work':'gesture'):'idle');
         live.nextAmbientAt=now+4500+(seed(Math.floor(live.root.position.x),Math.floor(live.root.position.z))%3500);
       }
       const a=live.actor;if(!a)continue;
@@ -111,12 +111,16 @@ export class GnozianAssetWorld {
     }
     shown.sort((a,b)=>a.d-b.d);
     this.wants.clear();
+    const touch=typeof navigator!=='undefined'&&navigator.maxTouchPoints>0;
+    const maxTerrain=touch?(this.details?52:30):(this.details?120:65);
+    const maxDetails=touch?38:105;
+    const maxActors=touch?30:70;
     let extras=0;
-    for(const {t,p,d} of shown.slice(0,this.details?120:70)){
+    for(const {t,p,d} of shown.slice(0,maxTerrain)){
       const variants=VARIANTS[t.terrain]??['base'];
       const variant=variants[seed(t.q,t.r)%variants.length]!;
       this.wish('terrain:'+t.q+':'+t.r,'terrain',t.terrain,p.add(new Vector3(0,.1,0)),1,variant,d>9?1:0);
-      if(t.visible?.[this.viewer]===false||extras>105)continue;
+      if(t.visible?.[this.viewer]===false||extras>=maxDetails)continue;
       if(t.resource){
         const animal=FAUNA.has(t.resource);
         this.wish('resource:'+t.q+':'+t.r,'resources',t.resource,p.add(new Vector3(-.27,height(t),-.25)),.42,'base',0,animal?'idle':'ambient');extras++;
@@ -136,22 +140,22 @@ export class GnozianAssetWorld {
       const civilization=state.civilizations[city.owner];
       const civId=state.civilizationIdentity?.find(x=>x.civIndex===city.owner)?.templateId || CIV_TEMPLATES.find(x=>x.name===civilization?.name)?.id||CIV_TEMPLATES[city.owner%CIV_TEMPLATES.length]?.id||'roman_empire';
       this.wish('city:'+city.id,'cities',civId,p.add(new Vector3(0,height(t),0)),.92,variant);
-      if(extras>105)continue;
+      if(extras>=maxDetails)continue;
       const buildings=city.buildings;
       for(let i=0;i<buildings.length;i++){
-        if(extras++>105)break;
+        if(extras++>=maxDetails)break;
         const a=i*2.399963+city.id,dist=.45+.16*Math.floor(i/6);
         this.wish('building:'+city.id+':'+i,'buildings',buildings[i]!,p.add(new Vector3(Math.cos(a)*dist,height(t),Math.sin(a)*dist)),.23); 
       }
       for(const district of city.districts??[]){
-        if(extras++>105)break;
+        if(extras++>=maxDetails)break;
         const dt=state.tiles[district.r]?.[district.q],dp=world(district.q,district.r);
         if(!dt||dt.revealed?.[this.viewer]===false||Vector3.Distance(dp,c)>15)continue;
         this.wish('district:'+district.id,'districts',district.type,dp.add(new Vector3(0,height(dt),0)),.62);
       }
     }
     for(const [id,owner] of Object.entries(state.systems?.wonderOwners??{})){
-      if(!owner||extras++>105)break;
+      if(!owner||extras++>=maxDetails)break;
       const city=townById.get(owner.cityId);if(!city)continue;
       const t=state.tiles[city.r]?.[city.q],p=world(city.q,city.r);
       if(!t||t.revealed?.[this.viewer]===false||Vector3.Distance(p,c)>16)continue;
@@ -159,7 +163,7 @@ export class GnozianAssetWorld {
     }
     let actors=0;
     for(const unit of state.units){
-      if(actors>=70)break;
+      if(actors>=maxActors)break;
       const t=state.tiles[unit.r]?.[unit.q],p=world(unit.q,unit.r);
       if(!t||t.revealed?.[this.viewer]===false||Vector3.Distance(p,c)>17)continue;
       this.wish('unit:'+unit.id,'units',unit.type,p.add(new Vector3(0,height(t),0)),.72,'base',0,'idle');
