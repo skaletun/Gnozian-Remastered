@@ -1,0 +1,543 @@
+@import "tailwindcss";
+
+/* ============================================================
+   GNOZIAN — Global Styles & Animations
+   ============================================================ */
+
+@theme {
+  --color-void: #050a12;
+  --color-panel: #0c1524;
+  --color-border: #1a2d42;
+  /* Grand-strategy chrome: cool slate + restrained metallics */
+  --color-gnz-brass: #c9a76a;
+  --color-gnz-parchment: #dce6ee;
+  --color-gnz-ink: #030608;
+  --color-gnz-panel: #0a121c;
+  --color-gnz-gold: #e4c06d;
+  --color-gnz-gold-dim: rgba(228, 192, 109, 0.45);
+  --color-gnz-teal: #2d6b7a;
+  --radius-gnz-panel: 1rem;
+  --radius-gnz-btn: 0.75rem;
+  --shadow-gnz-float: 0 22px 56px rgba(0, 0, 0, 0.62), 0 0 0 1px rgba(120, 190, 210, 0.08);
+  --shadow-gnz-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-hud-bar: 0 -14px 44px rgba(0, 0, 0, 0.58), 0 0 0 1px rgba(140, 200, 215, 0.14);
+  --font-gnz-display: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-gnz-ui: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-void);
+  font-family: var(--font-gnz-ui);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Hard-disable selection everywhere in the app surface. */
+#root,
+#root * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Explicit selection exceptions: inputs, map editor, and whitelisted fields. */
+input,
+textarea,
+[contenteditable="true"],
+.allow-text-select,
+.allow-text-select * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* ---- Gnozian menu / modal shell (strategy game chrome) ---- */
+.gnz-page-bg {
+  background:
+    radial-gradient(ellipse 110% 70% at 50% -25%, rgba(100, 210, 230, 0.07) 0%, transparent 52%),
+    radial-gradient(ellipse 90% 55% at 0% 100%, rgba(22, 72, 92, 0.35) 0%, transparent 48%),
+    radial-gradient(ellipse 70% 45% at 100% 30%, rgba(60, 42, 28, 0.25) 0%, transparent 42%),
+    linear-gradient(175deg, #0c1626 0%, #061018 38%, #03060c 100%);
+}
+
+/* Menu / marketing shell: vignette + subtle grain */
+.gnz-menu-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 78% 52% at 50% 105%, rgba(0, 0, 0, 0.62) 0%, transparent 56%),
+    radial-gradient(circle at 50% 0%, rgba(180, 230, 245, 0.035) 0%, transparent 40%);
+}
+.gnz-menu-shell > .relative.z-10 {
+  position: relative;
+  z-index: 10;
+}
+
+.gnz-heading {
+  font-family: var(--font-gnz-display);
+  color: rgba(236, 245, 250, 0.96);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.82), 0 0 32px rgba(110, 200, 220, 0.06);
+  letter-spacing: 0.04em;
+}
+.gnz-subtle {
+  color: rgba(176, 198, 212, 0.72);
+}
+.gnz-divider {
+  border-color: rgba(110, 190, 210, 0.22);
+}
+
+/* Framed panels (menus, modals) — class used by GnzPanel */
+.gnz-panel {
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(160, 210, 225, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+  background-image:
+    linear-gradient(165deg, rgba(22, 38, 56, 0.97) 0%, rgba(8, 16, 28, 0.99) 48%, rgba(5, 10, 18, 1) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 12%);
+  border: 1px solid rgba(212, 182, 108, 0.38);
+  color: var(--color-gnz-parchment);
+}
+
+/* Modal / pause backdrop — solid layers only (backdrop-filter is very costly with nested panels). */
+.gnz-modal-backdrop {
+  background:
+    radial-gradient(ellipse 95% 72% at 50% 38%, rgba(72, 160, 180, 0.09) 0%, transparent 56%),
+    rgba(2, 6, 12, 0.92);
+}
+
+/* Main menu large CTAs */
+.gnz-menu-btn {
+  border-radius: var(--radius-gnz-btn);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.22s ease,
+    filter 0.18s ease,
+    transform 0.14s ease;
+}
+.gnz-menu-btn:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.gnz-menu-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.995);
+}
+.gnz-menu-btn--secondary {
+  border: 1px solid rgba(130, 185, 205, 0.28);
+  background: linear-gradient(180deg, rgba(28, 46, 62, 0.96) 0%, rgba(12, 22, 34, 0.98) 100%);
+  color: rgba(228, 238, 246, 0.96);
+}
+.gnz-menu-btn--secondary:hover {
+  border-color: rgba(200, 228, 238, 0.42);
+}
+.gnz-menu-btn--primary {
+  border: 1px solid rgba(232, 196, 118, 0.46);
+  background: linear-gradient(180deg, #6e4a18 0%, #3d2810 46%, #1a1208 100%);
+  color: #faf4e6;
+  box-shadow:
+    0 14px 38px rgba(0, 0, 0, 0.58),
+    0 0 0 1px rgba(110, 190, 205, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11);
+}
+.gnz-menu-btn--primary:hover {
+  border-color: rgba(250, 224, 160, 0.52);
+}
+.gnz-menu-btn--aux {
+  border: 1px solid rgba(72, 110, 130, 0.38);
+  background: linear-gradient(180deg, rgba(18, 30, 42, 0.96) 0%, rgba(8, 14, 22, 0.98) 100%);
+  color: rgba(212, 224, 232, 0.94);
+}
+.gnz-menu-btn--aux:hover {
+  border-color: rgba(190, 215, 228, 0.38);
+  color: rgba(244, 248, 252, 1);
+}
+
+/* In-game HUD floating chrome */
+.hud-surface {
+  border: 1px solid rgba(188, 210, 222, 0.38);
+  background:
+    linear-gradient(175deg, rgba(26, 42, 58, 0.93) 0%, rgba(12, 22, 34, 0.97) 100%),
+    linear-gradient(115deg, rgba(0, 0, 0, 0) 38%, rgba(140, 210, 230, 0.045) 50%, rgba(0, 0, 0, 0) 62%);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.62),
+    0 0 0 1px rgba(212, 182, 108, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+  color: var(--color-gnz-parchment);
+}
+
+.hud-icon-btn {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.hud-icon-btn:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 14px rgba(130, 200, 220, 0.22);
+}
+.hud-icon-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.hud-ref-frame {
+  position: relative;
+  border: 1px solid rgba(214, 190, 120, 0.52);
+  background:
+    radial-gradient(ellipse 110% 70% at 50% 0%, rgba(150, 220, 235, 0.07), transparent 48%),
+    repeating-linear-gradient(90deg, rgba(42, 68, 88, 0.26) 0 10px, rgba(22, 36, 50, 0.22) 10px 20px),
+    linear-gradient(180deg, rgba(44, 58, 72, 0.97) 0%, rgba(18, 28, 40, 0.99) 55%, rgba(8, 14, 22, 1) 100%);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.64),
+    0 0 0 1px rgba(90, 150, 170, 0.35),
+    0 0 0 2px rgba(212, 172, 88, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 8px rgba(0, 0, 0, 0.55),
+    inset 0 0 28px rgba(120, 200, 220, 0.05);
+  color: #e8f2f8;
+}
+
+.hud-ref-frame::before,
+.hud-ref-frame::after {
+  content: '';
+  position: absolute;
+  width: clamp(0.55rem, 1vw, 0.9rem);
+  height: clamp(0.55rem, 1vw, 0.9rem);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(240, 248, 255, 0.85) 0 20%, transparent 22%),
+    linear-gradient(135deg, #d8c078, #5a7890 55%, #1a2838);
+  border: 1px solid rgba(20, 32, 44, 0.92);
+  transform: rotate(45deg);
+  box-shadow: 0 0 10px rgba(140, 200, 220, 0.28);
+}
+
+.hud-ref-frame::before {
+  left: -0.38rem;
+  bottom: -0.38rem;
+}
+
+.hud-ref-frame::after {
+  right: -0.38rem;
+  bottom: -0.38rem;
+}
+
+.hud-ref-topbar {
+  width: min(84vw, clamp(24rem, 38vw, 34rem));
+  min-height: clamp(3rem, 6.8vh, 3.65rem);
+  border-radius: 0 0 0.55rem 0.55rem;
+}
+
+.hud-ref-system {
+  min-height: clamp(1.8rem, 4.7vh, 2.15rem);
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.hud-ref-civcard-pos {
+  left: clamp(0.35rem, 0.8vw, 0.65rem);
+  top: clamp(1.65rem, 5vh, 2.2rem);
+}
+
+.hud-ref-civcard {
+  max-height: min(48vh, 19rem);
+  border-radius: 0.42rem;
+}
+
+.hud-ref-minimap-pos {
+  right: clamp(0.35rem, 0.8vw, 0.65rem);
+  bottom: max(0.45rem, env(safe-area-inset-bottom, 0px));
+}
+
+.hud-ref-minimap {
+  border-radius: 0.18rem;
+}
+
+.hud-ref-bottom {
+  width: min(88vw, clamp(30rem, 48vw, 40rem));
+  min-height: clamp(5.6rem, 13vh, 7rem);
+  border-bottom: 0;
+  border-radius: 0.7rem 0.7rem 0 0;
+}
+
+.hud-ref-bottom::before {
+  top: -0.38rem;
+  bottom: auto;
+}
+
+.hud-ref-bottom::after {
+  top: -0.38rem;
+  bottom: auto;
+}
+
+.hud-ref-endturn {
+  color: #f4faf8;
+  border: 1px solid rgba(160, 230, 200, 0.55);
+  background:
+    radial-gradient(ellipse 90% 100% at 50% 0%, rgba(200, 255, 228, 0.35), transparent 50%),
+    linear-gradient(180deg, #1f9d62 0%, #15784a 46%, #0c442c 100%);
+  box-shadow:
+    0 0 18px rgba(80, 200, 140, 0.42),
+    0 2px 0 rgba(8, 32, 24, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.42);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75), 0 0 10px rgba(160, 255, 210, 0.25);
+}
+
+.hud-ref-endturn:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow:
+    0 0 26px rgba(100, 220, 170, 0.5),
+    0 2px 0 rgba(8, 32, 24, 0.82),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.38);
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+/* ---- Animations ---- */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.35), 0 0 24px rgba(255,180,40,0.12); }
+  50%      { box-shadow: 0 0 22px rgba(255,215,0,0.72), 0 0 48px rgba(255,200,80,0.22); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.65; }
+  100% { transform: scale(2.85); opacity: 0; }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.18; }
+  50%      { opacity: 0.92; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out both;
+}
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out both;
+}
+.animate-slide-left {
+  animation: slideInLeft 0.35s ease-out both;
+}
+.animate-slide-right {
+  animation: slideInRight 0.35s ease-out both;
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ---- Utility Classes ---- */
+.glass {
+  background: rgba(17, 24, 39, 0.94);
+}
+
+.glass-strong {
+  background: rgba(17, 24, 39, 0.98);
+}
+
+/* Inputs/selects on dark panels — browser defaults are often black-on-black */
+.gnz-mp-control {
+  color: #dde8f0;
+  background-color: rgb(10 18 28 / 0.96);
+  caret-color: #7dd3fc;
+}
+.gnz-mp-control::placeholder {
+  color: #64748b;
+}
+select.gnz-mp-control,
+select.gnz-mp-control:focus {
+  color: #dde8f0;
+  background-color: rgb(10 18 28 / 0.96);
+}
+select.gnz-mp-control option {
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+.gnz-mp-chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(125, 211, 252, 0.35) rgba(0, 0, 0, 0.25);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(255,255,255,0.15);
+}
+
+.border-glow {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* Legacy HUD strip helpers (unused in TS — kept for tooling / previews) */
+.hud-strat-strip-top {
+  background:
+    linear-gradient(175deg, rgba(26, 42, 58, 0.93) 0%, rgba(12, 22, 34, 0.97) 100%),
+    linear-gradient(115deg, rgba(0, 0, 0, 0) 38%, rgba(140, 210, 230, 0.045) 50%, rgba(0, 0, 0, 0) 62%);
+  border-bottom: 2px solid rgba(188, 210, 222, 0.35);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.52),
+    inset 0 -1px 0 rgba(212, 182, 108, 0.18),
+    inset 0 0 24px rgba(90, 160, 180, 0.05);
+}
+.hud-strat-strip-bottom {
+  background:
+    linear-gradient(175deg, rgba(26, 42, 58, 0.93) 0%, rgba(12, 22, 34, 0.97) 100%),
+    linear-gradient(115deg, rgba(0, 0, 0, 0) 38%, rgba(140, 210, 230, 0.045) 50%, rgba(0, 0, 0, 0) 62%);
+  border-top: 2px solid rgba(188, 210, 222, 0.35);
+  box-shadow:
+    0 -16px 44px rgba(0, 0, 0, 0.52),
+    inset 0 1px 0 rgba(212, 182, 108, 0.18),
+    inset 0 0 24px rgba(90, 160, 180, 0.05);
+}
+.hud-strat-endturn {
+  font-family: var(--font-gnz-display);
+  color: #f4faf8;
+  background: linear-gradient(180deg, #1f9d62 0%, #126d42 44%, #0a3d28 100%);
+  border: 2px solid rgba(140, 220, 180, 0.48);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.06em;
+}
+.hud-strat-endturn:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow: 0 0 22px rgba(90, 210, 150, 0.32);
+}
+.hud-strat-endturn-warn {
+  border-color: rgba(250, 204, 21, 0.72);
+  background: linear-gradient(180deg, #8a5a18 0%, #5c3a0e 45%, #352208 100%);
+}
+
+/* ---- Canvas crispness ---- */
+canvas {
+  image-rendering: auto;
+}
+
+/* ---- Additional Animations ---- */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes bounce-in {
+  0%   { opacity: 0; transform: scale(0.3); }
+  50%  { opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 4px rgba(250, 204, 21, 0.4), inset 0 0 4px rgba(250, 204, 21, 0.1);
+  }
+  50% { 
+    box-shadow: 0 0 12px rgba(250, 204, 21, 0.8), inset 0 0 8px rgba(250, 204, 21, 0.2);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.35s ease-out both;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s ease-out both;
+}
+
+.animate-rotate {
+  animation: rotate 1s linear infinite;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s ease-out both;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* ---- Focus States ---- */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(125, 211, 252, 0.55);
+  outline-offset: 2px;
+}
+
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---- Text Selection ---- */
+::selection {
+  background: rgba(125, 211, 252, 0.28);
+  color: inherit;
+}
+
+::-moz-selection {
+  background: rgba(125, 211, 252, 0.28);
+  color: inherit;
+}
