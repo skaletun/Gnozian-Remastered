@@ -25,7 +25,7 @@ import {
   CIV_TEMPLATES,
 } from '../game/constants';
 import { calcTileYield, areAtWar, listValidWorkerImprovements, getEmpireStrategicResourceAccess } from '../game/engine';
-import { visibleTileBounds } from '../game/hexMetrics';
+import { axialToMiniPoint, miniPointToAxial, type WorldCameraView } from '../game/hexGeometry';
 import { hexDistance } from '../game/mapgen';
 import { computeMapDiscoveredCivIndices } from '../game/mapDiscovery';
 import { canAttackAtHexDistance, effectiveRangedAttackRange } from '../game/movementRules';
@@ -120,8 +120,9 @@ function productionItemName(item: ProductionItem | undefined): string {
 
 interface Props {
   gameState: GameState;
-  /** Live map camera for minimap viewport (may differ from gameState.camera while panning). */
-  viewportCamera: { x: number; y: number; zoom: number };
+  /** Real Babylon OrbitCamera target (axial hex coordinates). */
+  worldCamera: WorldCameraView | null;
+  onMinimapNavigate: (q: number, r: number) => void;
   /** Main map canvas size in CSS pixels (from GameCanvas ResizeObserver). */
   mapViewportWidth: number;
   mapViewportHeight: number;
@@ -155,7 +156,8 @@ interface Props {
 
 export default function HUD({
   gameState,
-  viewportCamera,
+  worldCamera,
+  onMinimapNavigate,
   mapViewportWidth,
   mapViewportHeight,
   onEndTurn,
@@ -479,7 +481,8 @@ export default function HUD({
       {(!compactHud || mobileMap) && <div className={`pointer-events-none absolute z-[34] ${compactHud ? 'rhm-mobile-map' : 'hud-ref-minimap-pos'}`}>
         <MiniMap
           gameState={gameState}
-          viewportCamera={viewportCamera}
+          worldCamera={worldCamera}
+          onNavigate={onMinimapNavigate}
           mapViewportWidth={mapViewportWidth}
           mapViewportHeight={mapViewportHeight}
           localViewerCivIndex={me}
@@ -1354,14 +1357,16 @@ function TileBlock({
 // ============================================================
 const MiniMap = memo(function MiniMap({
   gameState,
-  viewportCamera,
+  worldCamera,
+  onNavigate,
   mapViewportWidth,
   mapViewportHeight,
   localViewerCivIndex = 0,
   compact = false,
 }: {
   gameState: GameState;
-  viewportCamera: { x: number; y: number; zoom: number };
+  worldCamera: WorldCameraView | null;
+  onNavigate: (q: number, r: number) => void;
   mapViewportWidth: number;
   mapViewportHeight: number;
   localViewerCivIndex?: number;
@@ -1450,24 +1455,63 @@ const MiniMap = memo(function MiniMap({
       }
     }
 
-    const cam = viewportCamera;
-    const zoom = cam.zoom;
-    const vpW = Math.max(1, mapViewportWidth);
-    const vpH = Math.max(1, mapViewportHeight);
-    const { startQ, startR, endQ, endR } = visibleTileBounds(cam.x, cam.y, zoom, vpW, vpH, mapW, mapH, 0);
-    const miniVpX = startQ * cellW;
-    const miniVpY = startR * cellH;
-    const miniVpW = Math.max(cellW, (endQ - startQ + 1) * cellW);
-    const miniVpH = Math.max(cellH, (endR - startR + 1) * cellH);
-
-    ctx.strokeStyle = 'rgba(250, 204, 21, 0.85)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(miniVpX, miniVpY, miniVpW, miniVpH);
+    // The old viewport rectangle used legacy Canvas2D camera pixels and stayed
+    // permanently stale. Babylon supplies its real camera target in axial
+    // world coordinates; draw a precise center locator instead of a fabricated
+    // viewport rectangle from incompatible projection formulas.
+    if(worldCamera){
+      const marker=axialToMiniPoint(worldCamera.q,worldCamera.r,mapW,mapH,miniW,miniH);
+      const x=Math.max(3,Math.min(miniW-3,marker.x));
+      const y=Math.max(3,Math.min(miniH-3,marker.y));
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x,y,5.5,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,215,125,0.3)';
+      ctx.fill();
+      ctx.strokeStyle='#ffe3a1';
+      ctx.lineWidth=2;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x-9,y);
+      ctx.lineTo(x-3,y);
+      ctx.moveTo(x+3,y);
+      ctx.lineTo(x+9,y);
+      ctx.moveTo(x,y-9);
+      ctx.lineTo(x,y-3);
+      ctx.moveTo(x,y+3);
+      ctx.lineTo(x,y+9);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     ctx.strokeStyle = 'rgba(201, 162, 39, 0.35)';
     ctx.lineWidth = 1;
     ctx.strokeRect(0, 0, miniW, miniH);
-  }, [gameState, viewportCamera, mapViewportWidth, mapViewportHeight, humanCivIndex, miniW, miniH, mapW, mapH]);
+  }, [gameState, worldCamera, humanCivIndex, miniW, miniH, mapW, mapH]);
+
+  const focusFromCanvas=(canvas:HTMLCanvasElement,clientX:number,clientY:number):void=>{
+    if(!mapW||!mapH)return;
+    const rect=canvas.getBoundingClientRect();
+    if(rect.width<=0||rect.height<=0)return;
+    const {q,r}=miniPointToAxial(clientX-rect.left,clientY-rect.top,mapW,mapH,rect.width,rect.height);
+    onNavigate(q,r);
+  };
+  const focusByKeyboard=(key:string):boolean=>{
+    if(!mapW||!mapH)return false;
+    const q=Math.round(worldCamera?.q??(mapW-1)/2);
+    const r=Math.round(worldCamera?.r??(mapH-1)/2);
+    const moves:Record<string,[number,number]>={
+      ArrowLeft:[-2,0],ArrowRight:[2,0],ArrowUp:[0,-2],ArrowDown:[0,2],
+      Enter:[0,0],' ':[0,0],
+    };
+    const shift=moves[key];
+    if(!shift)return false;
+    onNavigate(
+      Math.max(0,Math.min(mapW-1,q+shift[0])),
+      Math.max(0,Math.min(mapH-1,r+shift[1]))
+    );
+    return true;
+  };
 
   return (
     <div
@@ -1476,7 +1520,15 @@ const MiniMap = memo(function MiniMap({
       <div className="pointer-events-auto hud-ref-frame hud-ref-minimap rounded-sm p-1">
         <canvas
           ref={canvasRef}
-          className="rounded-md"
+          className="rounded-md cursor-crosshair"
+          role="button"
+          tabIndex={0}
+          aria-label={t('game.minimap') + ' — ' + (compact ? 'tap to center the map' : 'click to center the map')}
+          title={t('game.minimap')}
+          onClick={event=>focusFromCanvas(event.currentTarget,event.clientX,event.clientY)}
+          onKeyDown={event=>{
+            if(focusByKeyboard(event.key))event.preventDefault();
+          }}
           style={{
             width: miniW,
             height: miniH,
