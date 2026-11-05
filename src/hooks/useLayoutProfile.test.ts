@@ -1,17 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { resolveLayoutProfile } from './useLayoutProfile';
 
-describe('Remastered landscape-only layouts', () => {
-  it('uses mobile UI on common landscape phone dimensions', () => {
-    expect(resolveLayoutProfile({ width: 844, height: 390, touch: false })).toBe('mobile');
-    expect(resolveLayoutProfile({ width: 932, height: 430, touch: true })).toBe('mobile');
-    expect(resolveLayoutProfile({ width: 740, height: 360, touch: false })).toBe('mobile');
-    expect(resolveLayoutProfile({ width: 1024, height: 600, touch: true })).toBe('mobile');
+describe('touch-friendly landscape layout', () => {
+  it.each([
+    [{width: 900,height: 415,touch: true},'mobile'],
+    [{width: 1180,height: 820,touch: true},'mobile'],
+    [{width: 1366,height: 1024,touch: true},'mobile'],
+    [{width: 1520,height: 900,touch: true},'mobile'],
+    [{width: 430,height: 930,touch: true},'mobile'],
+  ] as const)('uses the compact HUD for %j', (dimensions, profile) => {
+    expect(resolveLayoutProfile(dimensions)).toBe(profile);
   });
-  it('retains desktop layout for desktop monitors', () => {
-    expect(resolveLayoutProfile({ width: 1920, height: 1080, touch: false })).toBe('desktop');
-  });
-  it('retains tablet UI on non-phone medium desktops', () => {
-    expect(resolveLayoutProfile({ width: 1200, height: 800, touch: false })).toBe('tablet');
+
+  it.each([
+    [{width: 1440,height: 900,touch: false},'desktop'],
+    [{width: 1024,height: 768,touch: false},'tablet'],
+    [{width: 1800,height: 1100,touch: true},'tablet'],
+    [{width: 640,height: 360,touch: false},'mobile'],
+  ] as const)('retains expected layout for %j', (dimensions, profile) => {
+    expect(resolveLayoutProfile(dimensions)).toBe(profile);
   });
 });
