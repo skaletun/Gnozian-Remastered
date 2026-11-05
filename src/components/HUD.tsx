@@ -347,7 +347,7 @@ export default function HUD({
           </button>
           <button type="button" className={mobileMore?'rhm-tile rhm-selected':'rhm-tile'}
             onClick={()=>{setMobileMore(v=>!v);setMobileCities(false);}} aria-expanded={mobileMore}
-            aria-label={t('settings.title')}> <GnozianGlyph name="menu" size={21}/><small>{t('game.controls.title')}</small>
+            aria-label={t('settings.title')}> <GnozianGlyph name="grid" size={21}/><small>{t('game.controls.title')}</small>
           </button>
         </nav>
         {mobileMore && <aside className="rhm-drawer pointer-events-auto" aria-label={t('game.controls.title')}>
