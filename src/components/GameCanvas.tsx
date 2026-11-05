@@ -251,6 +251,34 @@ class BabylonGnozianMap {
       this.initialCamera=false;
     }
   }
+  applyPreferences(graphics?:GraphicsSettings,controls?:Props['cameraControls']):void{
+    if(this.destroyed)return;
+    // Render resolution is explicitly adjustable to balance battery and clarity.
+    const dpr=Math.max(1,window.devicePixelRatio||1);
+    const scale=graphics?.renderScale??1;
+    const budget=window.matchMedia('(pointer:coarse)').matches?1.35:1.75;
+    const effectiveDpr=Math.min(dpr,budget*scale);
+    const hardwareScale=Math.max(1,dpr/effectiveDpr);
+    if(Math.abs(this.engine.getHardwareScalingLevel()-hardwareScale)>.025){
+      this.engine.setHardwareScalingLevel(hardwareScale);
+      this.engine.resize();
+    }
+    const sensitivity=Math.max(.3,Math.min(3,controls?.sensitivity??1));
+    const x=Math.max(.3,Math.min(3,controls?.sensitivityX??1));
+    const y=Math.max(.3,Math.min(3,controls?.sensitivityY??1));
+    const zoom=Math.max(.3,Math.min(3,controls?.zoomSensitivity??1));
+    const pointer=this.camera.inputs.attached['pointers'] as unknown as {
+      angularSensibilityX:number;angularSensibilityY:number;
+    } | undefined;
+    if(pointer){
+      pointer.angularSensibilityX=(1000/(sensitivity*x))*(controls?.invertX?-1:1);
+      pointer.angularSensibilityY=(1000/(sensitivity*y))*(controls?.invertY?-1:1);
+    }
+    this.camera.wheelPrecision=40/zoom;
+    this.camera.pinchPrecision=65/zoom;
+    this.camera.panningSensibility=90/sensitivity;
+    this.camera.inertia=graphics?.motion==='reduced'?0.12:0.75;
+  }
   resize():void{
     if(this.destroyed)return;
     this.engine.resize();
@@ -281,6 +309,9 @@ export default function GameCanvas(props:Props){
     const windowResize=()=>r.resize();window.addEventListener('resize',windowResize);
     return ()=>{observer.disconnect();window.removeEventListener('resize',windowResize);renderer.current=null;r.dispose();};
   },[]);
+  useEffect(()=>{
+    renderer.current?.applyPreferences(props.graphics,props.cameraControls);
+  },[props.graphics,props.cameraControls]);
   useEffect(()=>{
     renderer.current?.setState(props.gameState,viewer,props.graphics);
   },[props.gameState,viewer,props.graphics,props.interactionTick]);
