@@ -13,9 +13,12 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 // responsive landscape-only gate without hiding or unloading game state.
 const standalone = window.matchMedia('(display-mode: standalone)').matches
   || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-if (standalone && screen.orientation && 'lock' in screen.orientation) {
+const lockableOrientation = screen.orientation as (ScreenOrientation & {
+  lock?: (orientation: 'landscape') => Promise<void>;
+}) | undefined;
+if (standalone && typeof lockableOrientation?.lock === 'function') {
   window.addEventListener('pointerdown', () => {
-    void screen.orientation.lock('landscape').catch(() => {
+    void lockableOrientation.lock?.('landscape').catch(() => {
       // Some platforms refuse programmatic locks; the CSS portrait gate remains active.
     });
   }, { once: true, capture: true });
