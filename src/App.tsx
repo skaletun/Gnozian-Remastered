@@ -1,6 +1,6 @@
 import { cityFoundingValidationError } from './game/cityFoundingRules';
 import {
-  useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense, startTransition, type ReactNode,
+  useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense, type ReactNode,
 } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type {
@@ -27,6 +27,7 @@ import {
 } from './game/facade/gameFacade';
 import { CIV_TEMPLATES, TECHNOLOGIES } from './game/constants';
 import { INITIAL_VIEWPORT, gridToScreen, type CameraState } from './game/hexMetrics';
+import type { WorldCameraView } from './game/hexGeometry';
 import { hexDistance } from './game/mapgen';
 import { visibleMessagesForViewer, computeMapDiscoveredCivIndices } from './game/mapDiscovery';
 import { findLeastCostMovementPath } from './game/pathfinding';
@@ -202,6 +203,8 @@ export default function App() {
   const [cameraState, setCameraState] = useState<CameraState>({
     x: 0, y: 0, zoom: 1, rotation: 0,
   });
+  const [worldCamera, setWorldCamera] = useState<WorldCameraView | null>(null);
+  const [minimapFocus, setMinimapFocus] = useState<{q:number;r:number;requestId:number}|null>(null);
   const [mapViewportPx, setMapViewportPx] = useState({
     w: INITIAL_VIEWPORT.w,
     h: INITIAL_VIEWPORT.h,
@@ -1065,8 +1068,18 @@ export default function App() {
     [applyStartedGame, runWithLoading]
   );
 
-  const handleCameraChange = useCallback((cam: CameraState) => {
-    startTransition(() => setCameraState(cam));
+  const handleWorldCameraChange = useCallback((camera: WorldCameraView) => {
+    setWorldCamera(previous => {
+      if(previous &&
+        Math.abs(previous.q-camera.q)<0.025 &&
+        Math.abs(previous.r-camera.r)<0.025 &&
+        Math.abs(previous.radius-camera.radius)<0.06)return previous;
+      return camera;
+    });
+  }, []);
+
+  const handleMinimapNavigate = useCallback((q:number,r:number) => {
+    setMinimapFocus(previous => ({q,r,requestId:(previous?.requestId ?? 0)+1}));
   }, []);
 
   const handleMapViewportSize = useCallback((w: number, h: number) => {
@@ -1793,15 +1806,15 @@ export default function App() {
       <div className="flex-1 relative">
         <GameMapView
           gameState={gameState}
-          liveCamera={cameraState}
           onTileClick={handleTileClick}
           onClearSelection={handleClearSelection}
-          onCameraChange={handleCameraChange}
           graphics={mapGraphics}
           cameraControls={settings.cameraControls}
           onViewportSize={handleMapViewportSize}
           localViewerCivIndex={localViewerCivIndex}
           interactionTick={interactionTick}
+          onWorldCameraChange={handleWorldCameraChange}
+          focusHex={minimapFocus}
         />
 
 
@@ -1821,7 +1834,8 @@ export default function App() {
         {/* HUD overlay */}
         <HUD
           gameState={gameState}
-          viewportCamera={cameraState}
+          worldCamera={worldCamera}
+          onMinimapNavigate={handleMinimapNavigate}
           mapViewportWidth={mapViewportPx.w}
           mapViewportHeight={mapViewportPx.h}
           onEndTurn={handleEndTurn}
