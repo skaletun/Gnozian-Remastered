@@ -1,4 +1,4 @@
-const VERSION='gnozian-remastered-0.2.0';
+const VERSION='gnozian-remastered-__BUILD_VERSION__';
 const SCOPE=self.registration.scope;
 const ASSETS=__PRECACHE_ASSETS__;
 const urls=ASSETS.map(p=>new URL(p,SCOPE).href);

@@ -5,7 +5,9 @@ import App from './App';
 createRoot(document.getElementById('root')!).render(<App />);
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(console.warn);
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`)
+      .then(registration => registration.update())
+      .catch(console.warn);
   });
 }
 
