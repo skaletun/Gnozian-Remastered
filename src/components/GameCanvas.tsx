@@ -7,6 +7,7 @@ import {
 import type { GameState, TerrainType, Tile } from '../game/types';
 import type { GraphicsSettings } from '../game/settingsConstants';
 import type { CameraState } from '../game/hexMetrics';
+import { hexWorldPosition } from '../game/hexGeometry';
 
 interface Props {
   gameState: GameState;
@@ -31,7 +32,8 @@ type Shape = 'hex'|'box'|'cone'|'pyramid'|'sphere'|'cylinder'|'torus';
 type Batch = {shape:Shape;color:string;matrices:Matrix[];refs?:TileRef[];pickable:boolean};
 const HEX_RADIUS=1.04;
 function tileWorld(q:number,r:number):Vector3 {
-  return new Vector3((q-r*.5)*1.75,0,r*1.52);
+  const {x,z}=hexWorldPosition(q,r);
+  return new Vector3(x,0,z);
 }
 const qIdentity=Quaternion.Identity();
 function transform(pos:Vector3,scale:Vector3,angle=0):Matrix {

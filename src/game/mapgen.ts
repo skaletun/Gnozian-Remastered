@@ -556,8 +556,11 @@ export function getNeighbors(q: number, r: number, width: number, height: number
     .filter(n => n.q >= 0 && n.q < width && n.r >= 0 && n.r < height);
 }
 
+/** Standard axial distance: all six vectors returned by getNeighbors have distance one. */
 export function hexDistance(q1: number, r1: number, q2: number, r2: number): number {
-  return Math.max(Math.abs(q1 - q2), Math.abs(r1 - r2), Math.abs((q1 - r1) - (q2 - r2)));
+  const dq = q1 - q2;
+  const dr = r1 - r2;
+  return Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq + dr));
 }
 
 /** Count of hex tiles in a filled disk of radius R (center + rings), axial coordinates. */

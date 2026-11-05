@@ -22,7 +22,7 @@ export interface CameraState {
 }
 
 export function gridToScreen(q: number, r: number, zoom = 1): { x: number; y: number } {
-  const x = (q - r * 0.5) * TILE_W * zoom;
+  const x = (q + r * 0.5) * TILE_W * zoom;
   const y = r * TILE_H * 0.75 * zoom;
   return { x, y };
 }
@@ -31,7 +31,7 @@ export function screenToGrid(sx: number, sy: number, camX: number, camY: number,
   const wx = (sx + camX) / zoom;
   const wy = (sy + camY) / zoom;
   const rr = Math.round(wy / (TILE_H * 0.75));
-  const qq = Math.round(wx / TILE_W + rr * 0.5);
+  const qq = Math.round(wx / TILE_W - rr * 0.5);
   return { q: qq, r: rr };
 }
 
