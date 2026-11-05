@@ -6,6 +6,7 @@ import {
 } from '@babylonjs/core';
 import type { GameState, TerrainType, Tile } from '../game/types';
 import type { GraphicsSettings } from '../game/settingsConstants';
+import { resolveRenderResolution } from '../game/renderResolution';
 import type { CameraState } from '../game/hexMetrics';
 import { hexWorldPosition } from '../game/hexGeometry';
 
@@ -56,11 +57,12 @@ class BabylonGnozianMap {
   private onPick:(q:number,r:number,mods?:{altKey?:boolean;shiftKey?:boolean})=>void;
   private onViewportSize?:(w:number,h:number)=>void;
   private destroyed=false;
+  private graphicsPreferences:GraphicsSettings|undefined;
   constructor(canvas:HTMLCanvasElement,pick:Props['onTileClick'],onViewportSize?:Props['onViewportSize']) {
     this.onPick=pick;
     this.onViewportSize=onViewportSize;
     this.engine=new Engine(canvas,true,{stencil:false,preserveDrawingBuffer:false,powerPreference:'high-performance'});
-    this.engine.setHardwareScalingLevel(Math.max(1,window.devicePixelRatio/1.6));
+    this.engine.setHardwareScalingLevel(1);
     this.scene=new Scene(this.engine);
     this.scene.clearColor=Color4.FromHexString('#0e202bff');
     this.sky=new HemisphericLight('ambient',new Vector3(0,1,0),this.scene);
@@ -255,16 +257,9 @@ class BabylonGnozianMap {
   }
   applyPreferences(graphics?:GraphicsSettings,controls?:Props['cameraControls']):void{
     if(this.destroyed)return;
-    // Render resolution is explicitly adjustable to balance battery and clarity.
-    const dpr=Math.max(1,window.devicePixelRatio||1);
-    const scale=graphics?.renderScale??1;
-    const budget=window.matchMedia('(pointer:coarse)').matches?1.35:1.75;
-    const effectiveDpr=Math.min(dpr,budget*scale);
-    const hardwareScale=Math.max(1,dpr/effectiveDpr);
-    if(Math.abs(this.engine.getHardwareScalingLevel()-hardwareScale)>.025){
-      this.engine.setHardwareScalingLevel(hardwareScale);
-      this.engine.resize();
-    }
+    this.graphicsPreferences=graphics;
+    this.updateRenderResolution();
+    this.engine.resize();
     const sensitivity=Math.max(.3,Math.min(3,controls?.sensitivity??1));
     const x=Math.max(.3,Math.min(3,controls?.sensitivityX??1));
     const y=Math.max(.3,Math.min(3,controls?.sensitivityY??1));
@@ -281,8 +276,23 @@ class BabylonGnozianMap {
     this.camera.panningSensibility=90/sensitivity;
     this.camera.inertia=graphics?.motion==='reduced'?0.12:0.75;
   }
+  private updateRenderResolution():void{
+    const canvas=this.engine.getRenderingCanvas();
+    if(!canvas)return;
+    const {hardwareScalingLevel}=resolveRenderResolution(
+      canvas.clientWidth||canvas.parentElement?.clientWidth||1,
+      canvas.clientHeight||canvas.parentElement?.clientHeight||1,
+      window.devicePixelRatio||1,
+      this.graphicsPreferences,
+      this.engine.getCaps().maxTextureSize
+    );
+    if(Math.abs(this.engine.getHardwareScalingLevel()-hardwareScalingLevel)>.002){
+      this.engine.setHardwareScalingLevel(hardwareScalingLevel);
+    }
+  }
   resize():void{
     if(this.destroyed)return;
+    this.updateRenderResolution();
     this.engine.resize();
     const canvas=this.engine.getRenderingCanvas();
     if(canvas)this.onViewportSize?.(canvas.clientWidth,canvas.clientHeight);
@@ -308,8 +318,15 @@ export default function GameCanvas(props:Props){
     const r=new BabylonGnozianMap(canvas,(q,r,mods)=>onPick.current(q,r,mods),(w,h)=>onViewport.current?.(w,h));
     renderer.current=r;
     const observer=new ResizeObserver(()=>r.resize());observer.observe(canvas);
-    const windowResize=()=>r.resize();window.addEventListener('resize',windowResize);
-    return ()=>{observer.disconnect();window.removeEventListener('resize',windowResize);renderer.current=null;r.dispose();};
+    const windowResize=()=>r.resize();
+    window.addEventListener('resize',windowResize);
+    window.addEventListener('orientationchange',windowResize);
+    return ()=>{
+      observer.disconnect();
+      window.removeEventListener('resize',windowResize);
+      window.removeEventListener('orientationchange',windowResize);
+      renderer.current=null;r.dispose();
+    };
   },[]);
   useEffect(()=>{
     renderer.current?.applyPreferences(props.graphics,props.cameraControls);

@@ -6,6 +6,7 @@ import {
   type GameSettings, type GraphicsSettings,
 } from '../game/settingsConstants';
 import { loadSettings, saveSettingsToStorage } from '../game/settingsStorage';
+import { resolveRenderResolution } from '../game/renderResolution';
 import './mobile-settings.css';
 
 type Tab = 'display' | 'controls' | 'gameplay' | 'audio' | 'language';
@@ -20,8 +21,8 @@ const LABELS = {
     title: 'НАСТРОЙКИ', subtitle: 'GNOZIAN REMASTERED',
     display: 'Графика', controls: 'Камера', gameplay: 'Игра', audio: 'Звук', language: 'Язык',
     close: 'Готово', reset: 'Сбросить настройки', confirm: 'Сбросить все настройки до стандартных?',
-    profile: 'Профиль качества', performance: 'Экономия', balanced: 'Баланс', quality: 'Качество',
-    render: 'Разрешение рендера', lower: 'Экономное', native: 'Обычное', sharp: 'Чёткое',
+    profile: 'Профиль качества', performance: 'Экономия', balanced: 'Баланс', quality: 'Качество', cinematic: 'Максимум',
+    render: 'Разрешение рендера', lower: 'Экономное', native: 'Нативное', sharp: 'Суперчёткое',
     details: 'Детали мира', territory: 'Территории цивилизаций',
     adaptive: 'Адаптивная производительность', adaptiveHint: 'Снижение нагрузки при падении FPS',
     camera: 'Чувствительность камеры', zoom: 'Масштабирование',
@@ -35,13 +36,14 @@ const LABELS = {
     offline: 'Настройки сохраняются на устройстве и работают без сети',
     english: 'English', russian: 'Русский',
     version: 'Настройки применяются сразу',
+    pixelRatio: 'Реальная плотность рендера',
   },
   en: {
     title: 'SETTINGS', subtitle: 'GNOZIAN REMASTERED',
     display: 'Graphics', controls: 'Camera', gameplay: 'Game', audio: 'Audio', language: 'Language',
     close: 'Done', reset: 'Reset all settings', confirm: 'Restore default settings?',
-    profile: 'Quality preset', performance: 'Battery saver', balanced: 'Balanced', quality: 'Quality',
-    render: 'Render resolution', lower: 'Lower', native: 'Native', sharp: 'Sharper',
+    profile: 'Quality preset', performance: 'Battery saver', balanced: 'Balanced', quality: 'Quality', cinematic: 'Maximum',
+    render: 'Render resolution', lower: 'Lower', native: 'Native', sharp: 'Supersampled',
     details: 'World details', territory: 'Civilization borders',
     adaptive: 'Adaptive performance', adaptiveHint: 'Reduce GPU load when FPS drops',
     camera: 'Camera sensitivity', zoom: 'Zoom sensitivity',
@@ -55,6 +57,7 @@ const LABELS = {
     offline: 'Preferences are stored on this device and work offline',
     english: 'English', russian: 'Русский',
     version: 'Settings apply instantly',
+    pixelRatio: 'Actual rendering pixel density',
   },
 } as const;
 
@@ -98,6 +101,9 @@ export default function MobileSettingsScreen({ onClose, onSave, onLanguageChange
   const [tab, setTab] = useState<Tab>('display');
   const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
   const strings = LABELS[settings.language];
+  const renderDensity = resolveRenderResolution(
+    window.innerWidth,window.innerHeight,window.devicePixelRatio||1,settings.graphics
+  ).pixelRatio;
   const commit = useCallback((update: (old: GameSettings) => GameSettings) => {
     const old = currentSettings.current;
     const next = update(old);
@@ -155,8 +161,8 @@ export default function MobileSettingsScreen({ onClose, onSave, onLanguageChange
       )}</nav>
       <div className="rm-scroll" key={tab}>
         {tab==='display' && <div className="rm-section">
-          <Choices name={strings.profile} value={settings.graphics.graphicsProfile === 'cinematic'?'quality':settings.graphics.graphicsProfile}
-            options={(['performance','balanced','quality'] as const).map(value=>({
+          <Choices name={strings.profile} value={settings.graphics.graphicsProfile}
+            options={(['performance','balanced','quality','cinematic'] as const).map(value=>({
               value,label:strings[value],
             }))} onChange={profile=>commit(old=>({
               ...old,graphics:{...old.graphics,...GRAPHICS_PROFILE_PRESETS[profile],graphicsProfile:profile,
@@ -168,6 +174,10 @@ export default function MobileSettingsScreen({ onClose, onSave, onLanguageChange
             {value:1 as const,label:strings.native},
             {value:1.25 as const,label:strings.sharp},
           ]} onChange={value=>graphic('renderScale',value)} />
+          <p className="rm-pixel-density" aria-live="polite">
+            {strings.pixelRatio}: <strong>{renderDensity.toFixed(2)}×</strong>
+            <small>({(window.devicePixelRatio||1).toFixed(2)}× DPR)</small>
+          </p>
           <Toggle name={strings.details} value={settings.graphics.terrainDetails} onChange={v=>graphic('terrainDetails',v)} />
           <Toggle name={strings.territory} value={settings.graphics.showTerritory}
             onChange={v=>commit(old=>({...old,graphics:{...old.graphics,showTerritory:v,territoryBorders:v}}))} />
