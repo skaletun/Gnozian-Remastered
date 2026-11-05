@@ -43,3 +43,38 @@
 @media (max-height:480px) and (orientation:landscape){
   .rm-pixel-density{padding:7px 10px}
 }
+
+
+/* True landscape remaster: dense 2-column preferences rather than phone-sized
+   stacked cards on a 900x400 CSS viewport. Every control retains >=40px tap size. */
+@media (orientation:landscape) and (max-height:600px) and (max-width:1150px){
+ .rm-panel{width:100%;max-width:none;height:100dvh;max-height:none;border:0;border-radius:0;
+   padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+ .rm-header{padding:6px 12px;}
+ .rm-header h1{font-size:19px;line-height:1.15;margin-top:1px;}
+ .rm-close{width:40px;height:40px;min-height:40px;border-radius:9px;}
+ .rm-tabs{padding:3px 8px;gap:3px;}
+ .rm-tab{min-height:40px;min-width:65px;padding:4px 7px;font-size:11px;gap:4px;}
+ .rm-tab .rm-tab-icon{width:20px;height:20px;}
+ .rm-scroll{padding:8px 13px;overscroll-behavior:contain;}
+ .rm-section{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+ .rm-section>.rm-choices,.rm-section>.rm-help,.rm-section>.rm-pixel-density{grid-column:1/-1;}
+ .rm-toggle,.rm-range,.rm-choices,.rm-row-action{padding:8px 10px;border-radius:9px;}
+ .rm-toggle-label strong,.rm-range strong{font-size:12px;}
+ .rm-toggle-label small{font-size:10px;line-height:1.25;}
+ .rm-range input{margin-top:14px;}
+ .rm-range output{font-size:12px;}
+ .rm-option{min-height:40px;padding:5px 7px;font-size:11px;}
+ .rm-options{gap:5px;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));}
+ .rm-choices legend{font-size:12px;margin-bottom:8px;}
+ .rm-footer{padding:4px 10px;min-height:45px;}
+ .rm-done{min-height:40px;}
+ .rm-row-action{min-height:43px;font-size:12px;}
+ .rm-pixel-density{padding:5px 8px;margin:0;}
+}
+@media (orientation:landscape) and (max-height:370px){
+ .rm-header{padding:3px 10px;}
+ .rm-tabs{padding:2px 8px;}
+ .rm-scroll{padding:5px 9px;}
+ .rm-section{gap:5px;}
+}

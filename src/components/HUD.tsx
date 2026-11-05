@@ -1,5 +1,6 @@
 import { useEffect, useMemo, memo, useRef, useState } from 'react';
 import './mobile-hud.css';
+import { MobileHudChrome, type MobileHudPane } from './MobileHudChrome';
 import { AnimatePresence, motion } from 'framer-motion';
 import type {
   GameState,
@@ -29,7 +30,7 @@ import { hexDistance } from '../game/mapgen';
 import { computeMapDiscoveredCivIndices } from '../game/mapDiscovery';
 import { canAttackAtHexDistance, effectiveRangedAttackRange } from '../game/movementRules';
 import { commanderForUnit } from '../game/systems/commandersCore';
-import { t } from '../i18n';
+import { getLanguage, t } from '../i18n';
 import { useLocalPlayerCivIndex } from '../context/LocalPlayerCivContext';
 import { playUiClick } from '../audio/AudioManager';
 import { useLayoutProfile } from '../hooks/useLayoutProfile';
@@ -187,11 +188,10 @@ export default function HUD({
   const me = useLocalPlayerCivIndex();
   const layoutProfile = useLayoutProfile();
   const compactHud = layoutProfile === 'mobile';
-  const [mobileMore,setMobileMore]=useState(false);
-  const [mobileCities,setMobileCities]=useState(false);
-  const [mobileMap,setMobileMap]=useState(false);
-  const mobileHudScale = compactHud ? Math.max(0.74, Math.min(0.96, mapViewportWidth / 980)) : 1;
-  const mobileSideScale = compactHud ? Math.max(0.72, Math.min(0.9, mapViewportWidth / 1060)) : 1;
+  const [mobilePane, setMobilePane] = useState<MobileHudPane>(null);
+  const [mobileMap, setMobileMap] = useState(false);
+  const [mobileDetailsOpen, setMobileDetailsOpen] = useState(false);
+  const [mobileDetailsTab, setMobileDetailsTab] = useState<'unit' | 'tile'>('unit');
   const humanCiv = gameState.civilizations[me] ?? gameState.civilizations[0]!;
   const unitCommandsLocked = gameState.currentCivIndex !== me;
 
@@ -204,6 +204,13 @@ export default function HUD({
     if (!gameState.selectedTile) return null;
     return gameState.tiles[gameState.selectedTile.r]?.[gameState.selectedTile.q] ?? null;
   }, [gameState.selectedTile, gameState.tiles]);
+
+  // A new map selection starts as a small, unobtrusive status rail.
+  useEffect(() => {
+    setMobileDetailsOpen(false);
+    setMobileDetailsTab('unit');
+    setMobilePane(null);
+  }, [gameState.selectedUnitId, gameState.selectedTile?.q, gameState.selectedTile?.r]);
 
   const cityOnTile = useMemo((): City | null => {
     if (!selectedTile || selectedTile.city == null) return null;
@@ -329,55 +336,68 @@ export default function HUD({
   }, [gameState, me]);
   const resourceSlots = useMemo(() => computeResourceSlotSnapshot(gameState, me), [gameState, me]);
   const calendarYearLabel = useMemo(() => calendarYearLabelForTurn(gameState.turn), [gameState.turn]);
+  const mobileYields = YIELD_ORDER.map(res => ({
+    id: res,
+    label: t('city.yield.' + res),
+    icon: YIELD_GLYPH[res],
+    stock: Math.round(hudResourceStockValue(humanCiv, res)),
+    perTurn: Math.round(incomeForHud[res] ?? 0),
+    color: RESOURCE_COLORS[res],
+  }));
+  const mobileStrategic = STRATEGIC_RESOURCE_ORDER.map(id => {
+    const localized = t('resource.name.' + id);
+    return {
+      id,
+      label: localized === 'resource.name.' + id
+        ? NATURAL_RESOURCES[id]?.name ?? id : localized,
+      icon: RESOURCE_GLYPH[id] ?? ('hammer' as const),
+      amount: Math.round(strategicAccess[id] ?? 0),
+    };
+  });
+  const mobileOwnCities = gameState.cities
+    .filter(city => city.owner === me)
+    .map(city => ({
+      id: city.id, name: city.name, population: city.population, isCapital: city.isCapital,
+    }))
+    .sort((a, b) => Number(b.isCapital) - Number(a.isCapital) || a.name.localeCompare(b.name));
+  const mobileRu = getLanguage() === 'ru';
+  const toggleMobilePane = (next: Exclude<MobileHudPane, null>) => {
+    setMobileDetailsOpen(false);
+    setMobilePane(previous => previous === next ? null : next);
+  };
+
 
   return (
     <>
-      {compactHud && <>
-        <nav className="rhm-toolbar pointer-events-auto" aria-label={t('game.controls.title')}>
-          <button type="button" onClick={() => {setMobileCities(v=>!v);setMobileMore(false);}} aria-expanded={mobileCities}
-            className={mobileCities?'rhm-tile rhm-selected':'rhm-tile'} aria-label={t('game.empire')}>
-            <GnozianGlyph name="empire" size={21}/><small>{t('game.empire')}</small>
-          </button>
-          <button type="button" onClick={onOpenTechTree} className="rhm-tile" aria-label={t('tech.title')}>
-            <GnozianGlyph name="flask" size={21}/><small>{t('tech.title')}</small>
-          </button>
-          <div className="rhm-turn"><strong>{gameState.turn}</strong><span>{t('game.turn')}</span></div>
-          <button type="button" onClick={onOpenDiplomacy} className="rhm-tile" aria-label={t('game.diplomacy')}>
-            <GnozianGlyph name="globe" size={21}/><small>{t('game.diplomacy')}</small>
-          </button>
-          <button type="button" className={mobileMore?'rhm-tile rhm-selected':'rhm-tile'}
-            onClick={()=>{setMobileMore(v=>!v);setMobileCities(false);}} aria-expanded={mobileMore}
-            aria-label={t('settings.title')}> <GnozianGlyph name="grid" size={21}/><small>{t('game.controls.title')}</small>
-          </button>
-        </nav>
-        {mobileMore && <aside className="rhm-drawer pointer-events-auto" aria-label={t('game.controls.title')}>
-          <button type="button" onClick={()=>{setMobileMore(false);onOpenPause();}}>
-            <GnozianGlyph name="home" size={21}/>{t('game.pause')}</button>
-          <button type="button" onClick={()=>{setMobileMore(false);onOpenSettings();}}>
-            <GnozianGlyph name="gear" size={21}/>{t('settings.title')}</button>
-          <button type="button" onClick={()=>{setMobileMore(false);onOpenGreatPeople();}}>
-            <GnozianGlyph name="star" size={21}/>{t('game.greatPeople')}</button>
-          <button type="button" onClick={()=>{setMobileMore(false);onOpenVictoryTracker();}}>
-            <GnozianGlyph name="target" size={21}/>{t('game.victoryTracker')}</button>
-          <button type="button" onClick={()=>{setMobileMore(false);onOpenAchievements();}}>
-            <GnozianGlyph name="trophy" size={21}/>{t('menu.achievements')}</button>
-          <button type="button" onClick={()=>{setMobileMore(false);onOpenStats();}}>
-            <GnozianGlyph name="chart" size={21}/>{t('game.statistics')}</button>
-          <button type="button" onClick={()=>{setMobileMore(false);onOpenHelp();}}>
-            <GnozianGlyph name="book" size={21}/>{t('game.controls.title')}</button>
-          <button type="button" onClick={()=>{setMobileMore(false);setMobileMap(v=>!v);}}>
-            <GnozianGlyph name="map" size={21}/>{mobileMap?'−':''} Mini map</button>
-          <div className="rhm-drawer-resources">
-            {STRATEGIC_RESOURCE_ORDER.map(id=><span key={id}>
-              <GnozianGlyph name={RESOURCE_GLYPH[id]??'pickaxe'} size={16}/>
-              {id}: {strategicAccess[id]??0}</span>)}
-          </div>
-        </aside>}
-      </>}
+      {compactHud && (
+        <MobileHudChrome
+          turn={gameState.turn}
+          calendar={calendarYearLabel}
+          civName={humanCiv.name}
+          pane={mobilePane}
+          onTogglePane={toggleMobilePane}
+          onClosePane={() => setMobilePane(null)}
+          onOpenTechTree={onOpenTechTree}
+          onOpenDiplomacy={onOpenDiplomacy}
+          onOpenEmpire={onOpenEmpire}
+          onOpenCity={onOpenCity}
+          onOpenPause={onOpenPause}
+          onOpenSettings={onOpenSettings}
+          onOpenAchievements={onOpenAchievements}
+          onOpenVictoryTracker={onOpenVictoryTracker}
+          onOpenGreatPeople={onOpenGreatPeople}
+          onOpenStats={onOpenStats}
+          onOpenHelp={onOpenHelp}
+          onToggleMap={() => setMobileMap(previous => !previous)}
+          mapOpen={mobileMap}
+          cities={mobileOwnCities}
+          yields={mobileYields}
+          strategic={mobileStrategic}
+        />
+      )}
       {/* ——— Top center: command strip (1:1 style) ——— */}
-      <header
+      {!compactHud && <header
         className={`pointer-events-none absolute top-0 left-0 right-0 z-40 flex items-start justify-center pt-[max(0.25rem,env(safe-area-inset-top,0px))] ${compactHud?'hidden':''}`}
-        style={compactHud ? { transform: `scale(${mobileHudScale})`, transformOrigin: 'top center' } : undefined}
       >
         <div className={`pointer-events-auto hud-ref-frame hud-ref-topbar flex items-center justify-center gap-2 px-3 py-2 ${
           compactHud
@@ -420,18 +440,17 @@ export default function HUD({
           <TopCmdButton icon="chart" onClick={onOpenStats} title={t('game.statistics')} active={showStatsPanel} />
           <TopCmdButton icon="book" onClick={onOpenHelp} title={t('game.controls.title')} active={showHelpPanel} />
         </div>
-      </header>
+      </header>}
 
       {/* top-right system commands */}
-      <div
+      {!compactHud && <div
         className={`pointer-events-none absolute right-[clamp(0.35rem,0.8vw,0.65rem)] top-[clamp(0.25rem,0.6vw,0.5rem)] z-40 ${compactHud?'hidden':''}`}
-        style={compactHud ? { transform: `scale(${mobileHudScale})`, transformOrigin: 'top right' } : undefined}
       >
         <div className="pointer-events-auto hud-ref-frame hud-ref-system flex items-center gap-1 px-1.5 py-1">
           <TopCmdButton icon="home" onClick={onOpenPause} title={t('game.pause')} />
           <TopCmdButton icon="gear" onClick={onOpenSettings} title={t('settings.title')} />
         </div>
-      </div>
+      </div>}
 
       {/* War banner */}
       <AnimatePresence>
@@ -441,7 +460,7 @@ export default function HUD({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             className={`pointer-events-none absolute left-1/2 z-30 -translate-x-1/2 ${
-              compactHud ? 'top-20' : 'top-16'
+              compactHud ? 'top-[58px]' : 'top-16'
             }`}
           >
             <div className="rounded-xl border border-red-600/45 bg-gradient-to-r from-red-950/98 to-red-900/92 px-6 py-1.5 text-center shadow-[0_8px_28px_rgba(0,0,0,0.4)]">
@@ -457,7 +476,7 @@ export default function HUD({
       </AnimatePresence>
 
       {/* Bottom-right cluster: minimap */}
-      <div className={`pointer-events-none absolute z-50 ${compactHud ? (mobileMap?'rhm-mobile-map':'hidden') : 'hud-ref-minimap-pos'}`}>
+      {(!compactHud || mobileMap) && <div className={`pointer-events-none absolute z-[34] ${compactHud ? 'rhm-mobile-map' : 'hud-ref-minimap-pos'}`}>
         <MiniMap
           gameState={gameState}
           viewportCamera={viewportCamera}
@@ -466,12 +485,11 @@ export default function HUD({
           localViewerCivIndex={me}
           compact={compactHud}
         />
-      </div>
+      </div>}
 
       {/* Left info stack */}
-      <aside
-        className={`pointer-events-none absolute z-30 max-h-[min(76vh,620px)] w-[clamp(14.5rem,21vw,20rem)] hud-ref-civcard-pos ${compactHud?(mobileCities?'rhm-city-open':'hidden'):''}`}
-        style={compactHud ? undefined : { transform: `scale(${mobileSideScale})`, transformOrigin: 'top left' }}
+      {!compactHud && <aside
+        className={`pointer-events-none absolute z-30 max-h-[min(76vh,620px)] w-[clamp(14.5rem,21vw,20rem)] hud-ref-civcard-pos `}
       >
         <div className="pointer-events-auto hud-ref-frame hud-ref-civcard flex max-h-full flex-col overflow-hidden">
           <div className="border-b border-stone-700/60 bg-black/40 px-3.5 py-3">
@@ -591,53 +609,115 @@ export default function HUD({
             })}
           </div>
         </div>
-      </aside>
+      </aside>}
 
-      {/* Unit / tile panel — must stack above bottom resources strip (z-40) */}
+      {/* Selection starts as a 41px status rail; details use a deliberate drawer.
+          The real, existing worker, commander, scout and city actions remain wired. */}
       <AnimatePresence>
         {(selectedUnit || selectedTile) && (
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.2 }}
-            className={`pointer-events-none absolute z-[45] ${
-              compactHud
-                ? 'rhm-unit-panel left-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] w-[min(92vw,23rem)] -translate-x-1/2'
-                : 'right-[clamp(12.6rem,19vw,17.8rem)] bottom-[max(0.45rem,env(safe-area-inset-bottom,0px))] w-[min(40vw,18.75rem)]'
-            }`}
+            transition={{ duration: 0.16 }}
+            className={compactHud
+              ? (mobileDetailsOpen
+                ? 'pointer-events-none absolute rhm-unit-panel rhm-unit-panel-open'
+                : 'pointer-events-none absolute rhm-unit-panel rhm-unit-panel-collapsed')
+              : 'pointer-events-none absolute z-[45] right-[clamp(12.6rem,19vw,17.8rem)] bottom-[max(0.45rem,env(safe-area-inset-bottom,0px))] w-[min(40vw,18.75rem)]'}
           >
-            <div className={`pointer-events-auto gnz-panel overflow-y-auto rounded-xl p-1.5 [scrollbar-width:thin] ${compactHud?'rhm-action-panel max-h-[min(49vh,24rem)]':'max-h-[min(42vh,17.25rem)]'}`}>
-              {selectedUnit && (
-                <UnitBlock
-                  selectedUnit={selectedUnit}
-                  gameState={gameState}
-                  cityOnTile={cityOnTile}
-                  localCiv={me}
-                  onFoundCity={onFoundCity}
-                  onAttackCity={onAttackCity}
-                  onActivateGreatPerson={onActivateGreatPerson}
-                  onBuildImprovement={onBuildImprovement}
-                  onAppointCommander={onAppointCommander}
-                  onAssignCommander={onAssignCommander}
-                  onUnassignCommander={onUnassignCommander}
-                  onActivateCommander={onActivateCommander}
-                  onSetScoutAutoExplore={onSetScoutAutoExplore}
-                  unitCommandsLocked={unitCommandsLocked}
-                  stackCount={movableStackIds.length}
-                  stackUnitsToMove={gameState.stackUnitsToMove ?? 9999}
-                  onStackUnitsToMove={onStackUnitsToMove}
-                />
+            <div className={compactHud
+              ? 'pointer-events-auto gnz-panel rhm-action-panel [scrollbar-width:thin]'
+              : 'pointer-events-auto gnz-panel max-h-[min(42vh,17.25rem)] overflow-y-auto rounded-xl p-1.5 [scrollbar-width:thin]'}
+            >
+              {compactHud && (
+                <div className="rhm-selection-summary">
+                  <span className="rhm-selection-mark" aria-hidden="true">
+                    <GnozianGlyph
+                      name={selectedUnit ? unitGlyph(selectedUnit.type) : cityOnTile ? 'city' : 'map'}
+                      size={20}
+                    />
+                  </span>
+                  <span className="rhm-selection-info">
+                    <strong>{selectedUnit?.name ?? cityOnTile?.name ??
+                      (selectedTile ? TERRAIN_NAMES[selectedTile.terrain] : '')}</strong>
+                    <small>
+                      {selectedUnit
+                        ? t('hud.hp') + ': ' + selectedUnit.hp + '/' + (selectedUnit.maxHp || 100)
+                          + ' · ' + t('hud.movement') + ': ' + selectedUnit.movement + '/' + selectedUnit.maxMovement
+                        : selectedTile ? '(' + selectedTile.q + ', ' + selectedTile.r + ')' : ''}
+                    </small>
+                  </span>
+                  {cityOnTile && cityOnTile.owner === me && (
+                    <button type="button" className="rhm-selection-city"
+                      onClick={() => onOpenCity(cityOnTile.id)}
+                      title={t('hud.openCity')} aria-label={t('hud.openCity') + ' ' + cityOnTile.name}>
+                      <GnozianGlyph name="city" size={18}/>
+                    </button>
+                  )}
+                  <button type="button" className="rhm-selection-toggle"
+                    aria-expanded={mobileDetailsOpen}
+                    aria-label={mobileDetailsOpen
+                      ? (mobileRu ? 'Свернуть сведения' : 'Collapse details')
+                      : (mobileRu ? 'Команды и сведения' : 'Commands and details')}
+                    onClick={() => {
+                      setMobilePane(null);
+                      setMobileMap(false);
+                      setMobileDetailsOpen(previous => !previous);
+                    }}>
+                    <GnozianGlyph name={mobileDetailsOpen ? 'foot' : 'grid'} size={17}/>
+                    {mobileDetailsOpen
+                      ? (mobileRu ? 'Свернуть' : 'Hide')
+                      : (mobileRu ? 'Команды' : 'Actions')}
+                  </button>
+                </div>
               )}
-              {selectedTile && (
-                <TileBlock
-                  tile={selectedTile}
-                  showTopBorder={!!selectedUnit}
-                  gameState={gameState}
-                  cityOnTile={cityOnTile}
-                  viewerCivIndex={me}
-                  onOpenCity={onOpenCity}
-                />
+              {compactHud && mobileDetailsOpen && selectedUnit && selectedTile && (
+                <div className="rhm-detail-tabs">
+                  <button type="button" aria-pressed={mobileDetailsTab === 'unit'}
+                    onClick={() => setMobileDetailsTab('unit')}>
+                    {mobileRu ? 'Юнит' : 'Unit'}
+                  </button>
+                  <button type="button" aria-pressed={mobileDetailsTab === 'tile'}
+                    onClick={() => setMobileDetailsTab('tile')}>
+                    {mobileRu ? 'Клетка' : 'Tile'}
+                  </button>
+                </div>
+              )}
+              {(!compactHud || mobileDetailsOpen) && (
+                <div className={compactHud ? 'rhm-detail-content' : ''}>
+                  {selectedUnit && (!compactHud || mobileDetailsTab === 'unit') && (
+                    <UnitBlock
+                      selectedUnit={selectedUnit}
+                      gameState={gameState}
+                      cityOnTile={cityOnTile}
+                      localCiv={me}
+                      onFoundCity={onFoundCity}
+                      onAttackCity={onAttackCity}
+                      onActivateGreatPerson={onActivateGreatPerson}
+                      onBuildImprovement={onBuildImprovement}
+                      onAppointCommander={onAppointCommander}
+                      onAssignCommander={onAssignCommander}
+                      onUnassignCommander={onUnassignCommander}
+                      onActivateCommander={onActivateCommander}
+                      onSetScoutAutoExplore={onSetScoutAutoExplore}
+                      unitCommandsLocked={unitCommandsLocked}
+                      stackCount={movableStackIds.length}
+                      stackUnitsToMove={gameState.stackUnitsToMove ?? 9999}
+                      onStackUnitsToMove={onStackUnitsToMove}
+                    />
+                  )}
+                  {selectedTile && (!compactHud || !selectedUnit || mobileDetailsTab === 'tile') && (
+                    <TileBlock
+                      tile={selectedTile}
+                      showTopBorder={!!selectedUnit && !compactHud}
+                      gameState={gameState}
+                      cityOnTile={cityOnTile}
+                      viewerCivIndex={me}
+                      onOpenCity={onOpenCity}
+                    />
+                  )}
+                </div>
               )}
             </div>
           </motion.div>
@@ -647,7 +727,7 @@ export default function HUD({
       <div
         className={`pointer-events-none absolute bottom-0 left-0 right-0 z-40 flex justify-center px-1 sm:px-2 pb-[max(0.45rem,env(safe-area-inset-bottom,0px))] ${compactHud?'rhm-bottom-wrap':''}`}
       >
-        <div className={`pointer-events-auto hud-ref-frame hud-ref-bottom gap-2 px-3 py-2.5 sm:px-4 ${compactHud?'rhm-bottom flex flex-row-reverse items-center':'flex flex-col'}`}>
+        <div className={`pointer-events-auto hud-ref-frame hud-ref-bottom gap-2 px-3 py-2.5 sm:px-4 ${compactHud?'rhm-bottom flex flex-row items-center':'flex flex-col'}`}>
           <div className={compactHud?'rhm-endturn-slot':'flex items-center justify-center'}>
             <button
               type="button"
@@ -669,7 +749,7 @@ export default function HUD({
                 : 'grid-cols-[repeat(7,minmax(3.7rem,1fr))] gap-1.5'
             }`}
           >
-            {YIELD_ORDER.map(res => {
+            {YIELD_ORDER.filter(res => !compactHud || res === 'food' || res === 'production' || res === 'gold' || res === 'science').map(res => {
               const perTurn = Math.round(incomeForHud[res] ?? 0);
               const stock = Math.round(hudResourceStockValue(humanCiv, res));
               const color = RESOURCE_COLORS[res];
@@ -740,9 +820,19 @@ export default function HUD({
               })}
             </div>
           </div>
+          {compactHud && (
+            <button type="button" className="rhm-resources-trigger"
+              data-rhm-interactive
+              aria-expanded={mobilePane === 'resources'}
+              title={mobileRu ? 'Все ресурсы и доходы' : 'All resources and income'}
+              aria-label={mobileRu ? 'Все ресурсы и доходы' : 'All resources and income'}
+              onClick={() => toggleMobilePane('resources')}>
+              <GnozianGlyph name="grid" size={18}/>
+            </button>
+          )}
         </div>
         {(cityProductionAlerts.idle > 0 || cityProductionAlerts.readySoon > 0) && (
-          <div className="pointer-events-none absolute -top-8 left-1/2 z-50 -translate-x-1/2">
+          <div className={compactHud ? 'rhm-production-alert pointer-events-none' : 'pointer-events-none absolute -top-8 left-1/2 z-50 -translate-x-1/2'}>
             <div className="pointer-events-auto gnz-panel flex items-center gap-2 rounded-lg px-3 py-1 text-[10px]">
               {cityProductionAlerts.readySoon > 0 && (
                 <span className="inline-flex items-center gap-1 text-emerald-300">
