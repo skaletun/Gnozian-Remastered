@@ -8,6 +8,7 @@ import type { GameState, TerrainType, Tile } from '../game/types';
 import type { GraphicsSettings } from '../game/settingsConstants';
 import { resolveRenderResolution } from '../game/renderResolution';
 import { hexWorldPosition, worldPointToAxial, type WorldCameraView } from '../game/hexGeometry';
+import { GnozianAssetWorld } from '../render/assets/GnozianAssetWorld';
 
 interface Props {
   gameState: GameState;
@@ -56,6 +57,11 @@ class BabylonGnozianMap {
   private onPick:(q:number,r:number,mods?:{altKey?:boolean;shiftKey?:boolean})=>void;
   private onViewportSize?:(w:number,h:number)=>void;
   private destroyed=false;
+  private assets:GnozianAssetWorld|null=null;
+  private lastState:GameState|null=null;
+  private lastViewer=0;
+  private lastGraphics:GraphicsSettings|undefined;
+  private refreshQueued=false;
   private graphicsPreferences:GraphicsSettings|undefined;
   private reportCameraChange?: (camera:WorldCameraView)=>void;
   private latestView:WorldCameraView|null=null;
@@ -78,6 +84,14 @@ class BabylonGnozianMap {
     this.camera.wheelPrecision=40;this.camera.pinchPrecision=65;
     this.camera.panningSensibility=90;
     this.camera.attachControl(canvas,true);
+    this.assets=new GnozianAssetWorld(this.scene,()=>this.camera.target,()=>{
+      if(this.destroyed||this.refreshQueued)return;
+      this.refreshQueued=true;
+      window.setTimeout(()=>{
+        this.refreshQueued=false;
+        if(!this.destroyed&&this.lastState)this.setState(this.lastState,this.lastViewer,this.lastGraphics);
+      },100);
+    });
     this.camera.useBouncingBehavior=false;
     this.camera.useAutoRotationBehavior=false;
     this.scene.onPointerObservable.add(info=>{
@@ -159,6 +173,8 @@ class BabylonGnozianMap {
   }
   setState(state:GameState,viewer:number,graphics?:GraphicsSettings):void {
     if(this.destroyed)return;
+    this.lastState=state;this.lastViewer=viewer;this.lastGraphics=graphics;
+    this.assets?.sync(state,viewer,graphics?.terrainDetails!==false);
     const batches=new Map<string,Batch>();
     const touched=new Set<string>();
     const add=(shape:Shape,color:string,pos:Vector3,scale:Vector3,ref?:TileRef,angle=0):void=>{
@@ -180,9 +196,9 @@ class BabylonGnozianMap {
       const lift=tile.terrain==='mountains'?.52:tile.terrain==='hills'?.22:.11;
       add('hex',color,new Vector3(p.x,-.18+lift*.5,p.z),new Vector3(1,lift+.30,1),{q:tile.q,r:tile.r},Math.PI/6);
       if(!revealed)continue;
-      if(tile.terrain==='mountains')add('cone','#b9b8a6',p.add(new Vector3(0,.63,0)),new Vector3(.92,1.27,.92));
-      if(tile.terrain==='hills')add('pyramid','#888052',p.add(new Vector3(0,.35,0)),new Vector3(.88,.62,.88));
-      if(treesAllowed&&(tile.terrain==='forest'||tile.terrain==='jungle')){
+      if(!this.assets?.has('terrain:'+tile.q+':'+tile.r)&&tile.terrain==='mountains')add('cone','#b9b8a6',p.add(new Vector3(0,.63,0)),new Vector3(.92,1.27,.92));
+      if(!this.assets?.has('terrain:'+tile.q+':'+tile.r)&&tile.terrain==='hills')add('pyramid','#888052',p.add(new Vector3(0,.35,0)),new Vector3(.88,.62,.88));
+      if(treesAllowed&&!this.assets?.has('terrain:'+tile.q+':'+tile.r)&&(tile.terrain==='forest'||tile.terrain==='jungle')){
         const n=tile.terrain==='jungle'?3:2;
         for(let i=0;i<n;i++){
           const a=i*2.39996+tile.q*.1;
@@ -191,9 +207,9 @@ class BabylonGnozianMap {
           add('cone',tile.terrain==='forest'?'#27503b':'#14583a',p.add(new Vector3(dx,.68,dz)),new Vector3(.67,.78,.67));
         }
       }
-      if(tile.road)add('box','#9b8b6e',p.add(new Vector3(0,.15,0)),new Vector3(1.15,.055,.12));
+      if(tile.road&&!this.assets?.has('road:'+tile.q+':'+tile.r))add('box','#9b8b6e',p.add(new Vector3(0,.15,0)),new Vector3(1.15,.055,.12));
       if(tile.river)add('box','#4ca3c8',p.add(new Vector3(-.34,.16,.03)),new Vector3(.11,.05,1.05),undefined,.25);
-      if(tile.improvement&&tile.improvement!=='none'){
+      if(tile.improvement&&tile.improvement!=='none'&&!this.assets?.has('improvement:'+tile.q+':'+tile.r)){
         const imp=tile.improvement;
         if(imp==='farm'){
           for(let i=0;i<3;i++)add('box','#b9a448',p.add(new Vector3(-.40+i*.30,.18,.34)),new Vector3(.23,.13,.37));
@@ -202,8 +218,9 @@ class BabylonGnozianMap {
         else if(imp==='fishing_boats')add('box','#e4d7b4',p.add(new Vector3(.21,.18,.19)),new Vector3(.55,.12,.28));
         else add('cylinder','#c7b78d',p.add(new Vector3(.34,.29,.20)),new Vector3(.30,.40,.30));
       }
-      if(tile.resource&&seen)add('sphere','#f0ce78',p.add(new Vector3(-.45,.31,-.24)),new Vector3(.19,.19,.19));
+      if(tile.resource&&seen&&!this.assets?.has('resource:'+tile.q+':'+tile.r))add('sphere','#f0ce78',p.add(new Vector3(-.45,.31,-.24)),new Vector3(.19,.19,.19));
       if(tile.city!==null&&tile.city!==undefined){
+        if(!this.assets?.has('city:'+tile.city)){
         const city=cityById.get(tile.city);
         const owner=city?.owner??tile.owner??0;
         const c=state.civilizations[owner]?.color;
@@ -221,6 +238,7 @@ class BabylonGnozianMap {
           add('box','#ddddce',p.add(new Vector3(-.22,.94,-.22)),new Vector3(.055,.83,.055));
           add('box',flag,p.add(new Vector3(-.05,1.17,-.22)),new Vector3(.36,.19,.05));
         }
+        }
       }
       if(tile.owner!==null&&graphics?.showTerritory!==false&&tile.city==null){
         const civColor=state.civilizations[tile.owner]?.color;
@@ -231,6 +249,11 @@ class BabylonGnozianMap {
       const tile=tileByKey.get(unit.q+','+unit.r);
       if(!tile||!this.visible(tile,viewer))continue;
       const p=tileWorld(unit.q,unit.r);
+      if(this.assets?.has('unit:'+unit.id)){
+        const team=state.civilizations[unit.owner]?.color;
+        if(isValidHex(team??''))add('torus',team!,p.add(new Vector3(0,.22,0)),new Vector3(.67,.4,.67),{q:unit.q,r:unit.r});
+        continue;
+      }
       const color=state.civilizations[unit.owner]?.color;
       const ownerColor=isValidHex(color??'')?color!:'#d8c69a';
       const water=tile.terrain==='ocean'||tile.terrain==='coast';
@@ -329,6 +352,7 @@ class BabylonGnozianMap {
   dispose():void {
     this.destroyed=true;
     this.engine.stopRenderLoop();
+    this.assets?.dispose();this.assets=null;
     this.scene.dispose();
     this.engine.dispose();
   }

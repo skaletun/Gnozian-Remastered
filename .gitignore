@@ -7,3 +7,6 @@ coverage/
 
 # Build-generated atomic vector graphics (created by npm predev/pretest/prebuild)
 public/ui-2d/
+
+# Files materialized from the tracked packed 3D archive
+public/models/

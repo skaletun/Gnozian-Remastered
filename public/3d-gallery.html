@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gnozian Remastered · 3D Atlas</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Segoe UI,sans-serif;background:#0d1823;color:#efe5cb}*{box-sizing:border-box}body{margin:0;height:100dvh;overflow:hidden}.shell{display:grid;grid-template-columns:310px minmax(0,1fr);height:100%}
+aside{display:flex;flex-direction:column;background:#111f2d;border-right:1px solid #816c47;min-height:0}header{padding:16px 18px;border-bottom:1px solid #4a4250}header b{display:block;letter-spacing:.13em;color:#efc678;font-size:20px}header small{color:#b8b1a0}#search{margin:14px 12px 8px;width:calc(100% - 24px);padding:10px 12px;background:#192d3f;border:1px solid #866d44;border-radius:8px;color:#fff;font-size:14px}#cats{display:flex;gap:5px;flex-wrap:wrap;padding:6px 12px 14px}.chip{border:1px solid #4a5d65;background:#162738;color:#d0d6d2;padding:5px 8px;border-radius:7px;cursor:pointer;font-size:11px}.chip.active{border-color:#efc678;background:#65502b;color:#fff1cd}
+#list{overflow-y:auto;flex:1;padding:4px 10px 22px;min-height:0}.item{width:100%;text-align:left;padding:9px 11px;margin:3px 0;background:transparent;color:#e5decb;border:1px solid transparent;border-radius:8px;cursor:pointer}.item span{display:block;font-size:13px}.item small{color:#96b0b9;font-size:10px}.item:hover{background:#27384b}.item.active{background:#354158;border-color:#c39b52}
+main{position:relative;min-width:0;background:radial-gradient(circle at 50% 40%,#22364a 0,#101d2b 70%)}canvas{width:100%;height:100%;display:block;touch-action:none;outline:none}.info{pointer-events:none;position:absolute;top:18px;left:20px;right:20px;text-shadow:0 1px 5px #101824}.info h1{font-size:clamp(18px,3vw,28px);margin:5px 0 3px}.info p{margin:0;color:#c9c6b9;font-size:12px}.toolbar{position:absolute;left:14px;right:14px;bottom:18px;border:1px solid #6b634f;border-radius:12px;background:rgba(15,28,42,.93);backdrop-filter:blur(12px);display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px}button,select{font:inherit;color:#f5e3bf;background:#203449;border:1px solid #8c7148;border-radius:7px;padding:8px 10px;cursor:pointer}select{min-width:125px;flex:1}button:hover{background:#375267}label{color:#d4bf91;font-size:12px;display:flex;align-items:center;gap:8px}input[type=range]{width:90px;accent-color:#d8ad5f}#status{position:absolute;right:16px;top:16px;font-size:12px;color:#c1d9dd;text-align:right;max-width:38%}.nav{position:absolute;bottom:98px;right:16px;display:flex;gap:8px}.error{color:#f8a4a4!important}.count{padding:5px 14px;color:#9caeb6;font-size:12px}
+@media(max-width:750px){.shell{grid-template-columns:145px minmax(0,1fr)}header{padding:10px}header b{font-size:14px}#search{font-size:12px;margin:8px;width:calc(100% - 16px)}#cats{padding:2px 6px 8px}.chip{font-size:10px;padding:4px}.item{padding:7px}.item span{font-size:11px}.info{top:10px;left:11px}.info p{font-size:10px}.toolbar{left:6px;right:6px;bottom:7px;gap:6px;padding:7px}.toolbar label{font-size:10px}.toolbar button,.toolbar select{font-size:11px;padding:6px}.nav{bottom:120px;right:8px}.count{padding:4px 8px}}
+</style>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+</head><body><div class="shell">
+<aside><header><b>GNOZIAN</b><small>REMASTERED · 3D ATLAS</small></header>
+<input id="search" type="search" placeholder="Поиск моделей" aria-label="Найти модель">
+<div id="cats"></div><div class="count" id="count"></div><nav id="list"></nav></aside>
+<main><canvas id="render" aria-label="Интерактивная 3D-модель, вращайте пальцем или мышью"></canvas>
+<div class="info"><p>3D ASSET / BABYLON.JS</p><h1 id="title">Выберите модель</h1><p id="path"></p></div>
+<div id="status" aria-live="polite">Загрузка каталога...</div>
+<div class="nav"><button id="prev" title="Предыдущая модель">←</button><button id="next" title="Следующая модель">→</button></div>
+<div class="toolbar"><label>Анимация <select id="clip" aria-label="Анимационный цикл"></select></label>
+<button id="toggle">⏸ Пауза</button><label>Скорость <input id="speed" type="range" min=".25" max="2.5" step=".25" value="1"></label>
+<button id="reset">Центр</button><button id="wire">Каркас</button><button id="download">↓ GLB</button></div>
+</main></div>
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const canvas=$('#render'),search=$('#search'),list=$('#list'),cats=$('#cats');
+const title=$('#title'),pathLabel=$('#path'),clipInput=$('#clip'),status=$('#status');
+let models=[],filtered=[],category='all',active=null,container=null,clip=null,speed=1,playing=true,wire=false,revision=0;
+const names={terrain:'Ландшафт',resources:'Ресурсы',improvements:'Улучшения',buildings:'Здания',units:'Юниты',wonders:'Чудеса',cities:'Поселения',districts:'Районы',props:'Объекты'};
+const engine=new BABYLON.Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true});
+const scene=new BABYLON.Scene(engine);
+scene.clearColor=new BABYLON.Color4(.07,.12,.18,1);
+const camera=new BABYLON.ArcRotateCamera('camera',-Math.PI/2,1.08,4.5,new BABYLON.Vector3(0,.8,0),scene);
+camera.lowerBetaLimit=.15;camera.upperBetaLimit=Math.PI-.15;camera.lowerRadiusLimit=.3;camera.upperRadiusLimit=60;camera.wheelPrecision=32;camera.pinchPrecision=75;camera.attachControl(canvas,true);
+new BABYLON.HemisphericLight('ambient',new BABYLON.Vector3(0,1,0),scene).intensity=.9;
+const light=new BABYLON.DirectionalLight('sun',new BABYLON.Vector3(-.5,-1,.7),scene);light.intensity=1.1;
+engine.runRenderLoop(()=>{scene.render();});
+window.addEventListener('resize',()=>engine.resize());
+new ResizeObserver(()=>engine.resize()).observe(canvas);
+function label(x){let name=x.name.replace(x.category+'_','').replace(/_lod[01]$/,'').replace(/_/g,' ');return name.charAt(0).toUpperCase()+name.slice(1);}
+function renderList(){
+  const q=search.value.toLowerCase().trim();
+  filtered=models.filter(x=>(category==='all'||x.category===category)&&x.name.includes(q));
+  $('#count').textContent=filtered.length+' моделей';
+  const fragment=document.createDocumentFragment();
+  for(const m of filtered){
+    const b=document.createElement('button');b.className='item'+(active===m?' active':'');
+    const name=document.createElement('span');name.textContent=label(m);
+    const meta=document.createElement('small');meta.textContent=names[m.category]||m.category;
+    b.append(name,meta);b.addEventListener('click',()=>void show(m));fragment.append(b);
+  }
+  list.replaceChildren(fragment);
+}
+function renderCats(){
+  cats.replaceChildren();
+  for(const c of ['all',...Object.keys(names)]){
+    const b=document.createElement('button');b.className='chip'+(category===c?' active':'');
+    b.textContent=c==='all'?'Все':names[c];b.onclick=()=>{category=c;renderCats();renderList();};cats.append(b);
+  }
+}
+function setStatus(msg,err=false){status.textContent=msg;status.className=err?'error':'';}
+function startClip(name){
+  if(!container)return;
+  for(const group of container.animationGroups)group.stop();
+  clip=container.animationGroups.find(g=>g.name===name)||container.animationGroups[0]||null;
+  if(clip){clip.start(true,speed,clip.from,clip.to,false);playing=true;$('#toggle').textContent='⏸ Пауза';}
+}
+async function show(m){
+  const my=++revision;active=m;renderList();title.textContent=label(m);pathLabel.textContent=m.path;setStatus('Загрузка GLB...');
+  if(container){for(const g of container.animationGroups)g.stop();container.removeAllFromScene();container.dispose();container=null;}
+  clip=null;clipInput.replaceChildren();
+  try{
+    const slash=m.path.lastIndexOf('/');
+    const c=await BABYLON.SceneLoader.LoadAssetContainerAsync(m.path.slice(0,slash+1),m.path.slice(slash+1),scene);
+    if(my!==revision){c.dispose();return;}
+    c.addAllToScene();container=c;
+    let lo=new BABYLON.Vector3(Number.POSITIVE_INFINITY,Number.POSITIVE_INFINITY,Number.POSITIVE_INFINITY);
+    let hi=new BABYLON.Vector3(Number.NEGATIVE_INFINITY,Number.NEGATIVE_INFINITY,Number.NEGATIVE_INFINITY);
+    let hasBounds=false;
+    for(const mesh of c.meshes){
+      if(!mesh.getTotalVertices()||!mesh.getBoundingInfo())continue;
+      const bounds=mesh.getBoundingInfo().boundingBox;
+      lo=BABYLON.Vector3.Minimize(lo,bounds.minimumWorld);
+      hi=BABYLON.Vector3.Maximize(hi,bounds.maximumWorld);hasBounds=true;
+    }
+    if(hasBounds){const center=lo.add(hi).scale(.5);camera.setTarget(center);camera.radius=Math.max(2.5,hi.subtract(lo).length()*1.2);}
+    for(const group of c.animationGroups){const option=document.createElement('option');option.value=group.name;option.textContent=group.name+' · loop';clipInput.add(option);}
+    startClip(c.animationGroups.some(g=>g.name==='idle')?'idle':c.animationGroups[0]?.name);
+    if(wire)for(const mat of c.materials)mat.wireframe=true;
+    setStatus(c.meshes.length+' мешей · '+c.animationGroups.length+' анимаций');
+  }catch(error){if(my!==revision)return;setStatus('Ошибка загрузки: '+String(error),true);console.error(error);}
+}
+clipInput.onchange=()=>startClip(clipInput.value);
+$('#toggle').onclick=()=>{if(!clip)return;if(playing){clip.pause();playing=false;}else{clip.play(true);playing=true;}$('#toggle').textContent=playing?'⏸ Пауза':'▶ Пуск';};
+$('#speed').oninput=e=>{speed=Number(e.target.value);if(clip){clip.speedRatio=speed;}};
+$('#reset').onclick=()=>{camera.alpha=-Math.PI/2;camera.beta=1.08;};
+$('#wire').onclick=()=>{wire=!wire;if(container)for(const m of container.materials)m.wireframe=wire;};
+$('#download').onclick=()=>{if(!active)return;const a=document.createElement('a');a.href=active.path;a.download=active.name+'.glb';a.click();};
+function step(dir){if(!filtered.length)return;const i=filtered.indexOf(active);void show(filtered[(i+dir+filtered.length)%filtered.length]);}
+$('#prev').onclick=()=>step(-1);$('#next').onclick=()=>step(1);
+search.oninput=()=>renderList();
+document.addEventListener('keydown',e=>{if(e.target===search)return;if(e.key==='ArrowLeft')step(-1);if(e.key==='ArrowRight')step(1);});
+fetch('models/catalog.json').then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json();}).then(all=>{
+  models=all;renderCats();renderList();setStatus(models.length+' GLB · Выберите модель');if(models.length)void show(models[0]);
+}).catch(e=>setStatus('Не удалось загрузить каталог: '+String(e),true));
+</script></body></html>
