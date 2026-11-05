@@ -1,4 +1,5 @@
-import { useEffect, useMemo, memo, useRef } from 'react';
+import { useEffect, useMemo, memo, useRef, useState } from 'react';
+import './mobile-hud.css';
 import { AnimatePresence, motion } from 'framer-motion';
 import type {
   GameState,
@@ -186,6 +187,9 @@ export default function HUD({
   const me = useLocalPlayerCivIndex();
   const layoutProfile = useLayoutProfile();
   const compactHud = layoutProfile === 'mobile';
+  const [mobileMore,setMobileMore]=useState(false);
+  const [mobileCities,setMobileCities]=useState(false);
+  const [mobileMap,setMobileMap]=useState(false);
   const mobileHudScale = compactHud ? Math.max(0.74, Math.min(0.96, mapViewportWidth / 980)) : 1;
   const mobileSideScale = compactHud ? Math.max(0.72, Math.min(0.9, mapViewportWidth / 1060)) : 1;
   const humanCiv = gameState.civilizations[me] ?? gameState.civilizations[0]!;
@@ -328,9 +332,51 @@ export default function HUD({
 
   return (
     <>
+      {compactHud && <>
+        <nav className="rhm-toolbar pointer-events-auto" aria-label={t('game.controls.title')}>
+          <button type="button" onClick={() => {setMobileCities(v=>!v);setMobileMore(false);}} aria-expanded={mobileCities}
+            className={mobileCities?'rhm-tile rhm-selected':'rhm-tile'} aria-label={t('game.empire')}>
+            <GnozianGlyph name="empire" size={21}/><small>{t('game.empire')}</small>
+          </button>
+          <button type="button" onClick={onOpenTechTree} className="rhm-tile" aria-label={t('tech.title')}>
+            <GnozianGlyph name="flask" size={21}/><small>{t('tech.title')}</small>
+          </button>
+          <div className="rhm-turn"><strong>{gameState.turn}</strong><span>{t('game.turn')}</span></div>
+          <button type="button" onClick={onOpenDiplomacy} className="rhm-tile" aria-label={t('game.diplomacy')}>
+            <GnozianGlyph name="globe" size={21}/><small>{t('game.diplomacy')}</small>
+          </button>
+          <button type="button" className={mobileMore?'rhm-tile rhm-selected':'rhm-tile'}
+            onClick={()=>{setMobileMore(v=>!v);setMobileCities(false);}} aria-expanded={mobileMore}
+            aria-label={t('settings.title')}> <GnozianGlyph name="menu" size={21}/><small>{t('game.controls.title')}</small>
+          </button>
+        </nav>
+        {mobileMore && <aside className="rhm-drawer pointer-events-auto" aria-label={t('game.controls.title')}>
+          <button type="button" onClick={()=>{setMobileMore(false);onOpenPause();}}>
+            <GnozianGlyph name="home" size={21}/>{t('game.pause')}</button>
+          <button type="button" onClick={()=>{setMobileMore(false);onOpenSettings();}}>
+            <GnozianGlyph name="gear" size={21}/>{t('settings.title')}</button>
+          <button type="button" onClick={()=>{setMobileMore(false);onOpenGreatPeople();}}>
+            <GnozianGlyph name="star" size={21}/>{t('game.greatPeople')}</button>
+          <button type="button" onClick={()=>{setMobileMore(false);onOpenVictoryTracker();}}>
+            <GnozianGlyph name="target" size={21}/>{t('game.victoryTracker')}</button>
+          <button type="button" onClick={()=>{setMobileMore(false);onOpenAchievements();}}>
+            <GnozianGlyph name="trophy" size={21}/>{t('menu.achievements')}</button>
+          <button type="button" onClick={()=>{setMobileMore(false);onOpenStats();}}>
+            <GnozianGlyph name="chart" size={21}/>{t('game.statistics')}</button>
+          <button type="button" onClick={()=>{setMobileMore(false);onOpenHelp();}}>
+            <GnozianGlyph name="book" size={21}/>{t('game.controls.title')}</button>
+          <button type="button" onClick={()=>{setMobileMore(false);setMobileMap(v=>!v);}}>
+            <GnozianGlyph name="map" size={21}/>{mobileMap?'−':''} Mini map</button>
+          <div className="rhm-drawer-resources">
+            {STRATEGIC_RESOURCE_ORDER.map(id=><span key={id}>
+              <GnozianGlyph name={RESOURCE_GLYPH[id]??'pickaxe'} size={16}/>
+              {id}: {strategicAccess[id]??0}</span>)}
+          </div>
+        </aside>}
+      </>}
       {/* ——— Top center: command strip (1:1 style) ——— */}
       <header
-        className="pointer-events-none absolute top-0 left-0 right-0 z-40 flex items-start justify-center pt-[max(0.25rem,env(safe-area-inset-top,0px))]"
+        className={`pointer-events-none absolute top-0 left-0 right-0 z-40 flex items-start justify-center pt-[max(0.25rem,env(safe-area-inset-top,0px))] ${compactHud?'hidden':''}`}
         style={compactHud ? { transform: `scale(${mobileHudScale})`, transformOrigin: 'top center' } : undefined}
       >
         <div className={`pointer-events-auto hud-ref-frame hud-ref-topbar flex items-center justify-center gap-2 px-3 py-2 ${
@@ -378,7 +424,7 @@ export default function HUD({
 
       {/* top-right system commands */}
       <div
-        className="pointer-events-none absolute right-[clamp(0.35rem,0.8vw,0.65rem)] top-[clamp(0.25rem,0.6vw,0.5rem)] z-40"
+        className={`pointer-events-none absolute right-[clamp(0.35rem,0.8vw,0.65rem)] top-[clamp(0.25rem,0.6vw,0.5rem)] z-40 ${compactHud?'hidden':''}`}
         style={compactHud ? { transform: `scale(${mobileHudScale})`, transformOrigin: 'top right' } : undefined}
       >
         <div className="pointer-events-auto hud-ref-frame hud-ref-system flex items-center gap-1 px-1.5 py-1">
@@ -411,7 +457,7 @@ export default function HUD({
       </AnimatePresence>
 
       {/* Bottom-right cluster: minimap */}
-      <div className={`pointer-events-none absolute z-50 ${compactHud ? 'bottom-[max(0.45rem,env(safe-area-inset-bottom,0px))] right-1' : 'hud-ref-minimap-pos'}`}>
+      <div className={`pointer-events-none absolute z-50 ${compactHud ? (mobileMap?'rhm-mobile-map':'hidden') : 'hud-ref-minimap-pos'}`}>
         <MiniMap
           gameState={gameState}
           viewportCamera={viewportCamera}
@@ -424,8 +470,8 @@ export default function HUD({
 
       {/* Left info stack */}
       <aside
-        className="pointer-events-none absolute z-30 max-h-[min(76vh,620px)] w-[clamp(14.5rem,21vw,20rem)] hud-ref-civcard-pos"
-        style={compactHud ? { transform: `scale(${mobileSideScale})`, transformOrigin: 'top left' } : undefined}
+        className={`pointer-events-none absolute z-30 max-h-[min(76vh,620px)] w-[clamp(14.5rem,21vw,20rem)] hud-ref-civcard-pos ${compactHud?(mobileCities?'rhm-city-open':'hidden'):''}`}
+        style={compactHud ? undefined : { transform: `scale(${mobileSideScale})`, transformOrigin: 'top left' }}
       >
         <div className="pointer-events-auto hud-ref-frame hud-ref-civcard flex max-h-full flex-col overflow-hidden">
           <div className="border-b border-stone-700/60 bg-black/40 px-3.5 py-3">
@@ -557,11 +603,11 @@ export default function HUD({
             transition={{ duration: 0.2 }}
             className={`pointer-events-none absolute z-[45] ${
               compactHud
-                ? 'left-1/2 bottom-[max(12.5rem,calc(12.5rem+env(safe-area-inset-bottom,0px)))] w-[min(88vw,17rem)] -translate-x-1/2'
+                ? 'rhm-unit-panel left-1/2 bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] w-[min(92vw,23rem)] -translate-x-1/2'
                 : 'right-[clamp(12.6rem,19vw,17.8rem)] bottom-[max(0.45rem,env(safe-area-inset-bottom,0px))] w-[min(40vw,18.75rem)]'
             }`}
           >
-            <div className="pointer-events-auto gnz-panel max-h-[min(42vh,17.25rem)] overflow-y-auto rounded-xl p-1.5 [scrollbar-width:thin]">
+            <div className={`pointer-events-auto gnz-panel overflow-y-auto rounded-xl p-1.5 [scrollbar-width:thin] ${compactHud?'rhm-action-panel max-h-[min(49vh,24rem)]':'max-h-[min(42vh,17.25rem)]'}`}>
               {selectedUnit && (
                 <UnitBlock
                   selectedUnit={selectedUnit}
@@ -599,10 +645,10 @@ export default function HUD({
       </AnimatePresence>
 
       <div
-        className="pointer-events-none absolute bottom-0 left-0 right-0 z-40 flex justify-center px-1 sm:px-2 pb-[max(0.45rem,env(safe-area-inset-bottom,0px))]"
+        className={`pointer-events-none absolute bottom-0 left-0 right-0 z-40 flex justify-center px-1 sm:px-2 pb-[max(0.45rem,env(safe-area-inset-bottom,0px))] ${compactHud?'rhm-bottom-wrap':''}`}
       >
-        <div className="pointer-events-auto hud-ref-frame hud-ref-bottom flex flex-col gap-2 px-3 py-2.5 sm:px-4">
-          <div className="flex items-center justify-center">
+        <div className={`pointer-events-auto hud-ref-frame hud-ref-bottom gap-2 px-3 py-2.5 sm:px-4 ${compactHud?'rhm-bottom flex flex-row-reverse items-center':'flex flex-col'}`}>
+          <div className={compactHud?'rhm-endturn-slot':'flex items-center justify-center'}>
             <button
               type="button"
               data-sfx="confirm"
@@ -619,7 +665,7 @@ export default function HUD({
           <div
             className={`grid w-full ${
               compactHud
-                ? 'grid-cols-2 gap-1.5'
+                ? 'rhm-yields'
                 : 'grid-cols-[repeat(7,minmax(3.7rem,1fr))] gap-1.5'
             }`}
           >
@@ -640,7 +686,7 @@ export default function HUD({
               return (
                 <div
                   key={res}
-                  className="flex min-h-[2.25rem] items-center justify-center gap-1.5 rounded-md border border-amber-900/20 bg-black/20 px-1.5 py-1"
+                  className={`flex min-h-[2.25rem] items-center justify-center gap-1.5 rounded-md border border-amber-900/20 bg-black/20 px-1.5 py-1 ${compactHud?'rhm-yield-item':''}`}
                   title={`${stockLabel} · ${perTurn >= 0 ? '+' : ''}${perTurn}/t`}
                 >
                   <GnozianGlyph name={YIELD_GLYPH[res]} size={compactHud ? 15 : 16} className="shrink-0 text-stone-300/95" />
@@ -670,7 +716,7 @@ export default function HUD({
                 </div>
               );
             })}
-            <div className={`${compactHud ? 'col-span-2' : 'col-span-7'} grid grid-cols-[auto_repeat(5,minmax(2.4rem,1fr))] items-center gap-1 rounded border border-sky-900/35 bg-sky-950/15 px-1.5 py-1`}>
+            <div className={`${compactHud ? 'hidden' : 'col-span-7'} grid grid-cols-[auto_repeat(5,minmax(2.4rem,1fr))] items-center gap-1 rounded border border-sky-900/35 bg-sky-950/15 px-1.5 py-1`}>
               <span className="shrink-0 rounded border border-sky-900/45 bg-sky-950/20 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-stone-500">
                 STR
               </span>
