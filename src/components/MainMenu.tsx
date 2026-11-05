@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { GameSettings, TerrainType } from '../game/types';
 import type { GnozianGlyphName } from './ui';
 import { CIV_TEMPLATES } from '../game/constants';
-import { t } from '../i18n';
+import { getLanguage, t } from '../i18n';
 import { GNOZIAN_RELEASE_VERSION } from '../game/releaseVersion';
 import {
   civBonusSummaryLines,
@@ -28,6 +28,7 @@ import {
 import MapTypePreview from './MapTypePreview';
 import { validateTerrainImport, formatTerrainImportError } from '../map/mapEditorUtils';
 import { useLayoutProfile } from '../hooks/useLayoutProfile';
+import { splitMobileMapSizes } from '../game/mobileNewGamePresets';
 import MobileMainMenu from './MobileMainMenu';
 import { assetUrl } from '../utils/assetUrl';
 import {
@@ -125,6 +126,7 @@ export default function MainMenu({
   const isWebRuntime = typeof navigator !== 'undefined' && !/electron/i.test(navigator.userAgent);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showNewGame, setShowNewGame] = useState(false);
+  const [setupTab, setSetupTab] = useState<'world'|'civilization'|'rules'|'advanced'>('world');
   const [spCustomTerrain, setSpCustomTerrain] = useState<TerrainType[][] | null>(null);
   const [spCustomMapLabel, setSpCustomMapLabel] = useState('');
   const [spCustomMapErr, setSpCustomMapErr] = useState<string | null>(null);
@@ -242,6 +244,7 @@ export default function MainMenu({
     [t]
   );
 
+  const compactSizes = splitMobileMapSizes(mapSizePresets, settings.mapWidth, settings.mapHeight);
   const nTpl = CIV_TEMPLATES.length;
   const humanTpl = ((playerCivIndex % nTpl) + nTpl) % nTpl;
 
@@ -294,7 +297,7 @@ export default function MainMenu({
   }
 
   return (
-    <div className={`relative flex min-h-screen flex-col items-center overflow-y-auto overflow-x-hidden gnz-page-bg gnz-menu-shell ${
+    <div className={`relative flex min-h-screen flex-col items-center overflow-y-auto overflow-x-hidden gnz-page-bg gnz-menu-shell ${compact && showNewGame ? 'gnz-newgame-mobile-shell' : ''} ${
       compact ? 'justify-start px-2 py-2' : 'justify-center px-2 py-3 sm:px-3 sm:py-4'
     }`}>
       <div
@@ -302,7 +305,7 @@ export default function MainMenu({
         style={{ backgroundImage: `url('${assetUrl('bg-img.png')}')` }}
       />
       <div className="pointer-events-none absolute inset-0 z-0 bg-gradient-to-b from-black/45 via-black/35 to-black/70" />
-      <div className={`z-[120] ${compact ? 'sticky top-2 self-end' : 'fixed right-2 top-2 sm:right-5 sm:top-5'}`}>
+      <div className={`gnz-newgame-exit z-[120] ${compact ? 'sticky top-2 self-end' : 'fixed right-2 top-2 sm:right-5 sm:top-5'}`}>
         <button
           type="button"
           onClick={() => {
@@ -330,7 +333,7 @@ export default function MainMenu({
       </div>
 
       <div
-        className={`z-[120] flex items-center gap-1.5 ${compact ? 'fixed left-2 bottom-2' : 'fixed bottom-2 left-2 sm:bottom-5 sm:left-5'}`}
+        className={`gnz-newgame-social z-[120] flex items-center gap-1.5 ${compact ? 'fixed left-2 bottom-2' : 'fixed bottom-2 left-2 sm:bottom-5 sm:left-5'}`}
       >
         <a
           href={MENU_SOCIAL_LINKS.github}
@@ -382,7 +385,7 @@ export default function MainMenu({
               <GnozianPanelCorners inset={4} size={32} />
               <div className="relative z-10">
                 <p className="text-center text-base font-semibold text-stone-100">{t('menu.exitConfirm')}</p>
-                <div className="mt-6 flex gap-3">
+                <div className="gnz-newgame-actions mt-6 flex gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -423,10 +426,10 @@ export default function MainMenu({
         </svg>
       </div>}
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1480px] flex-col items-center px-2">
-        <div className="flex min-w-0 w-full flex-col items-center">
+      <div className="gnz-newgame-page relative z-10 mx-auto flex w-full max-w-[1480px] flex-col items-center px-2">
+        <div className="gnz-newgame-inner flex min-w-0 w-full flex-col items-center">
       {/* Logo — SVG flanks match gnozian-ico parchment + gold hex motif */}
-      <div className={`relative z-10 text-center ${compact ? 'mb-3 mt-1' : 'mb-5 sm:mb-10'}`}>
+      <div className={`gnz-newgame-hero relative z-10 text-center ${compact ? 'mb-3 mt-1' : 'mb-5 sm:mb-10'}`}>
         <div className="mb-2 flex items-center justify-center gap-1 sm:mb-3 sm:gap-3">
           {!compact && <GnozianMenuFlank variant="globe" size={48} className="shrink-0 drop-shadow-lg sm:h-14 sm:w-14" />}
           <div className="min-w-0 px-1">
@@ -537,13 +540,13 @@ export default function MainMenu({
         </div>
       ) : (
         /* New Game Settings */
-        <div className={`relative z-10 flex w-full max-w-5xl flex-col gap-3 px-1 sm:px-3 lg:max-h-[85vh] lg:flex-row lg:items-stretch lg:gap-6 ${
+        <div data-setup-tab={setupTab} className={`gnz-newgame-layout relative z-10 flex w-full max-w-5xl flex-col gap-3 px-1 sm:px-3 lg:max-h-[85vh] lg:flex-row lg:items-stretch lg:gap-6 ${
           compact ? 'pb-2' : ''
         }`}>
-        <GnzPanel ornament className={`max-h-[min(84vh,720px)] flex-1 overflow-y-auto lg:min-w-0 ${
+        <GnzPanel ornament={!compact} className={`gnz-newgame-panel max-h-[min(84vh,720px)] flex-1 overflow-y-auto lg:min-w-0 ${
           compact ? 'p-3' : 'p-3 sm:p-6'
         }`}>
-          <div className="mb-5 flex items-center justify-between border-b border-amber-800/25 pb-4">
+          <div className="gnz-newgame-header mb-5 flex items-center justify-between border-b border-amber-800/25 pb-4">
             <h2 className="gnz-heading flex items-center gap-2 text-xl font-bold">
               <GnozianGlyph name="map" size={22} className="text-amber-400/90" />
               {t('newGame.title')}
@@ -560,9 +563,27 @@ export default function MainMenu({
             </button>
           </div>
 
-          <div className="space-y-4">
+          {compact && (
+            <nav className="gnz-newgame-tabs" role="tablist" aria-label={t('newGame.title')}>
+              {([
+                {id:'world',ru:'Мир',en:'World',glyph:'map'},
+                {id:'civilization',ru:'Цивилизация',en:'Civilization',glyph:'empire'},
+                {id:'rules',ru:'Правила',en:'Rules',glyph:'gear'},
+                {id:'advanced',ru:'Дополнительно',en:'Advanced',glyph:'star'},
+              ] as const).map(tab=>(
+                <button type="button" role="tab" key={tab.id}
+                  aria-selected={setupTab === tab.id}
+                  className={setupTab === tab.id ? 'gnz-newgame-tab gnz-newgame-tab-active' : 'gnz-newgame-tab'}
+                  onClick={()=>setSetupTab(tab.id)}>
+                  <GnozianGlyph name={tab.glyph} size={18}/>
+                  {getLanguage() === 'ru' ? tab.ru : tab.en}
+                </button>
+              ))}
+            </nav>
+          )}
+          <div className="gnz-newgame-fields space-y-4">
             {/* Map Size */}
-            <div className={spCustomTerrain || settings.mapType === 'earth' ? 'pointer-events-none opacity-45' : ''}>
+            <div data-setup-group="world" className={spCustomTerrain || settings.mapType === 'earth' ? 'pointer-events-none opacity-45' : ''}>
               <label className="mb-2 block text-sm font-medium text-gray-400">{t('newGame.mapSize')}</label>
               <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'}`}>
                 {mapSizePresets.map(p => {
@@ -596,7 +617,7 @@ export default function MainMenu({
             </div>
 
             {/* Map Type */}
-            <div className={spCustomTerrain ? 'pointer-events-none opacity-45' : ''}>
+            <div data-setup-group="world" className={spCustomTerrain ? 'pointer-events-none opacity-45' : ''}>
               <label className="mb-2 block text-sm font-medium text-gray-400">{t('newGame.mapType')}</label>
               <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'}`}>
                 {NEW_GAME_MAP_TYPES.map(type => (
@@ -620,7 +641,7 @@ export default function MainMenu({
             </div>
 
             {/* Custom map import */}
-            <div className="rounded-xl border border-amber-900/25 bg-stone-900/40 p-3">
+            <div data-setup-group="world" className="rounded-xl border border-amber-900/25 bg-stone-900/40 p-3">
               <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-amber-700/90">
                 {t('newGame.customMap')}
               </label>
@@ -679,7 +700,7 @@ export default function MainMenu({
             </div>
 
             {/* Compact preview (procedural or imported) */}
-            <div className="flex flex-col items-center gap-2 lg:hidden">
+            <div data-setup-group="world" className="flex flex-col items-center gap-2 lg:hidden">
               <p className="gnz-subtle text-center text-[10px] font-bold uppercase tracking-wider text-amber-700/85">
                 {t('newGame.mapPreview')}
               </p>
@@ -697,7 +718,7 @@ export default function MainMenu({
             </div>
 
             {/* Player identity (single-player) */}
-            <div className="gnz-divider border-t border-amber-900/20 pt-4">
+            <div data-setup-group="civilization" className="gnz-divider border-t border-amber-900/20 pt-4">
               <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-amber-700/90">
                 {t('newGame.playerLeader')}
               </label>
@@ -754,7 +775,7 @@ export default function MainMenu({
               </div>
             </div>
 
-            <div className="gnz-divider border-t border-amber-900/20 pt-4">
+            <div data-setup-group="advanced" className="gnz-divider border-t border-amber-900/20 pt-4">
               <div className="mb-2 flex items-center justify-between gap-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-amber-700/90">
                   {t('meta.mementosTitle')}
@@ -814,7 +835,7 @@ export default function MainMenu({
             </div>
 
             {/* Number of Civs */}
-            <div>
+            <div data-setup-group="rules">
               <label className="mb-2 block text-sm font-medium text-gray-400">
                 {t('newGame.civilizations')}: {settings.numCivs}
               </label>
@@ -840,7 +861,7 @@ export default function MainMenu({
             </div>
 
             {/* Difficulty */}
-            <div>
+            <div data-setup-group="rules">
               <label className="mb-2 block text-sm font-medium text-gray-400">{t('newGame.difficulty')}</label>
               <div className="grid grid-cols-3 gap-2">
                 {(['settler', 'chieftain', 'warlord', 'prince', 'emperor', 'deity'] as const).map(d => (
@@ -864,7 +885,7 @@ export default function MainMenu({
             </div>
 
             {/* Max Turns */}
-            <div>
+            <div data-setup-group="rules">
               <label className="mb-2 block text-sm font-medium text-gray-400">
                 {t('newGame.maxTurns')}: {settings.maxTurns}
               </label>
@@ -885,7 +906,7 @@ export default function MainMenu({
             </div>
 
             {/* Seed */}
-            <div>
+            <div data-setup-group="rules">
               <label className="mb-2 block text-sm font-medium text-gray-400">{t('newGame.seed')}</label>
               <div className="flex gap-2">
                 <input
@@ -919,7 +940,7 @@ export default function MainMenu({
           </div>
 
           {/* Civ Preview */}
-          <div className="gnz-divider mt-4 border-t pt-4">
+          <div className="gnz-newgame-civ-summary gnz-divider mt-4 border-t pt-4">
             <div className="gnz-subtle mb-2 text-xs">{t('newGame.civsInGame')}</div>
             <div className="flex flex-wrap gap-2">
               {Array.from({ length: settings.numCivs }, (_, i) => {
