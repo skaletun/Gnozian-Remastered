@@ -4,3 +4,6 @@ dist/
 .DS_Store
 *.tsbuildinfo
 coverage/
+
+# Build-generated atomic vector graphics (created by npm predev/pretest/prebuild)
+public/ui-2d/

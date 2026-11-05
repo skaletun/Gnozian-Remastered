@@ -10,7 +10,10 @@
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "verify": "npm run typecheck && npm test && npm run build"
+    "verify": "npm run typecheck && npm test && npm run build",
+    "prebuild": "node scripts/generate2dAssets.mjs",
+    "predev": "node scripts/generate2dAssets.mjs",
+    "pretest": "node scripts/generate2dAssets.mjs"
   },
   "dependencies": {
     "clsx": "2.1.1",
