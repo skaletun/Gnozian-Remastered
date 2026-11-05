@@ -245,6 +245,22 @@ export default function MainMenu({
   );
 
   const compactSizes = splitMobileMapSizes(mapSizePresets, settings.mapWidth, settings.mapHeight);
+  const renderSizeOption = (preset: (typeof mapSizePresets)[number]) => {
+    const selected=settings.mapWidth===preset.w&&settings.mapHeight===preset.h;
+    return (
+      <button key={preset.w+'x'+preset.h} type="button" aria-pressed={selected}
+        onClick={()=>setSettings(previous=>({...previous,mapWidth:preset.w,mapHeight:preset.h}))}
+        className={'gnz-newgame-size flex flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-xs transition-colors ' +
+          (selected
+            ? 'border-amber-400 bg-amber-900/65 text-amber-100'
+            : 'border-stone-600 bg-slate-900/75 text-slate-200 hover:border-amber-500')}>
+        <MapSizeGlyph mapWidth={preset.w} mapHeight={preset.h}
+          className={selected?'gnz-newgame-size-icon h-8 w-full text-amber-200':'gnz-newgame-size-icon h-8 w-full text-sky-300/75'}/>
+        <span className="text-center leading-tight">{preset.label}</span>
+      </button>
+    );
+  };
+
   const nTpl = CIV_TEMPLATES.length;
   const humanTpl = ((playerCivIndex % nTpl) + nTpl) % nTpl;
 
@@ -585,30 +601,17 @@ export default function MainMenu({
             {/* Map Size */}
             <div data-setup-group="world" className={spCustomTerrain || settings.mapType === 'earth' ? 'pointer-events-none opacity-45' : ''}>
               <label className="mb-2 block text-sm font-medium text-gray-400">{t('newGame.mapSize')}</label>
-              <div className={`grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'}`}>
-                {mapSizePresets.map(p => {
-                  const sel = settings.mapWidth === p.w && settings.mapHeight === p.h;
-                  return (
-                    <button
-                      key={p.label}
-                      type="button"
-                      onClick={() => setSettings(s => ({ ...s, mapWidth: p.w, mapHeight: p.h }))}
-                      className={`flex flex-col items-center gap-1.5 rounded-lg border px-2 py-2.5 text-xs transition-colors ${
-                        sel
-                          ? 'border-blue-500 bg-blue-700 text-white'
-                          : 'border-stone-600 bg-stone-800 text-stone-300 hover:border-stone-400'
-                      }`}
-                    >
-                      <MapSizeGlyph
-                        mapWidth={p.w}
-                        mapHeight={p.h}
-                        className={sel ? 'h-9 w-full text-sky-200' : 'h-9 w-full text-amber-500/70'}
-                      />
-                      <span className="text-center leading-tight">{p.label}</span>
-                    </button>
-                  );
-                })}
+              <div className={compact?'grid grid-cols-4 gap-2':'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4'}>
+                {(compact ? compactSizes.featured : mapSizePresets).map(renderSizeOption)}
               </div>
+              {compact && compactSizes.additional.length > 0 && (
+                <details className="gnz-newgame-more-sizes">
+                  <summary>{getLanguage() === 'ru' ? 'Другие размеры карты' : 'More map sizes'} ({compactSizes.additional.length})</summary>
+                  <div className="gnz-newgame-extra-grid">
+                    {compactSizes.additional.map(renderSizeOption)}
+                  </div>
+                </details>
+              )}
               {settings.mapType === 'earth' ? (
                 <p className="mt-2 text-[11px] leading-snug text-amber-600/90">{t('newGame.earthMapSizeFixed')}</p>
               ) : spCustomTerrain ? (
