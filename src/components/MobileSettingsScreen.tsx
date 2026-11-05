@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Language } from '../i18n';
 import { getLanguage, setLanguage } from '../i18n';
 import {
@@ -94,20 +94,21 @@ function Choices<T extends string | number>({ name, options, value, onChange }: 
 
 export default function MobileSettingsScreen({ onClose, onSave, onLanguageChange }: Props) {
   const [settings, setSettings] = useState<GameSettings>(() => loadSettings());
+  const currentSettings = useRef(settings);
   const [tab, setTab] = useState<Tab>('display');
   const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
   const strings = LABELS[settings.language];
   const commit = useCallback((update: (old: GameSettings) => GameSettings) => {
-    setSettings(old => {
-      const next = update(old);
-      saveSettingsToStorage(next);
-      if (old.language !== next.language || getLanguage() !== next.language) {
-        setLanguage(next.language);
-        onLanguageChange?.(next.language);
-      }
-      onSave?.(next);
-      return next;
-    });
+    const old = currentSettings.current;
+    const next = update(old);
+    currentSettings.current = next;
+    setSettings(next);
+    saveSettingsToStorage(next);
+    if (old.language !== next.language || getLanguage() !== next.language) {
+      setLanguage(next.language);
+      onLanguageChange?.(next.language);
+    }
+    onSave?.(next);
   }, [onSave, onLanguageChange]);
   const graphic = useCallback(<K extends keyof GraphicsSettings>(key: K, value: GraphicsSettings[K]) => {
     commit(old => ({ ...old, graphics: { ...old.graphics, [key]: value } }));

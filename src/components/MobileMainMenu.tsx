@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { t } from '../i18n';
+import { t, getLanguage } from '../i18n';
 import { playUiClick } from '../audio/AudioManager';
 import './mobile-menu.css';
 
@@ -36,7 +36,7 @@ export default function MobileMainMenu({
     };
   },[]);
   const action=(callback?:()=>void)=>()=>{playUiClick();callback?.();};
-  const isRu=window.localStorage.getItem('gnozian_settings')?.includes('"language":"en"')!==true;
+  const isRu=getLanguage()==='ru';
   async function requestInstall(){
     if(prompt){await prompt.prompt();setPrompt(null);}
     else setShowInstallHint(true);
@@ -59,7 +59,7 @@ export default function MobileMainMenu({
     </header>
     <div className="rmm-body">
       <div className="rmm-overline">{isRu?'ЭПОХА ЦИВИЛИЗАЦИЙ':'RISE OF CIVILIZATIONS'}</div>
-      <h1>ТВОЯ ИСТОРИЯ.<span>ТВОЯ ИМПЕРИЯ.</span></h1>
+      <h1>{isRu?'ТВОЯ ИСТОРИЯ.':'YOUR HISTORY.'}<span>{isRu?'ТВОЯ ИМПЕРИЯ.':'YOUR EMPIRE.'}</span></h1>
       <p className="rmm-lead">
         {isRu?'Исследуй мир, строй города, веди дипломатию и перепиши историю.':
           'Explore the world, build cities, master diplomacy, and rewrite history.'}
