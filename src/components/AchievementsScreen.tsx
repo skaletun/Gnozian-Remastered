@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { AchievementsMap } from '../game/achievements';
 import { ACHIEVEMENTS, getProgressPercentage } from '../game/achievements';
 import { t } from '../i18n';
-import { GnozianGlyph, GnozianPanelCorners, type GnozianGlyphName, GnzNavRailBtn } from './ui';
+import { GnozianGlyph, GnozianPanelCorners, Gnz2DAsset, type GnozianGlyphName, GnzNavRailBtn } from './ui';
 import { playUiClick } from '../audio/AudioManager';
 import { modalBackdropMotion, modalCardMotion } from './ui/motionPresets';
 
@@ -99,11 +99,11 @@ export default function AchievementsScreen({ achievements, onClose }: Props) {
     >
       <motion.div
         {...modalCardMotion}
-        className="relative gnz-panel mx-4 flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-200/[0.14] shadow-2xl ring-1 ring-amber-400/[0.14]"
+        className="gnz-achievements-window gnz-2d-panel relative gnz-panel mx-4 flex max-h-[90dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-cyan-200/[0.14] shadow-2xl ring-1 ring-amber-400/[0.14]"
         onClick={e => e.stopPropagation()}
       >
         <GnozianPanelCorners inset={5} size={36} />
-        <div className="relative z-10 flex items-center justify-between border-b border-cyan-200/[0.12] bg-black/30 px-4 py-5 sm:px-6">
+        <div className="gnz-achievements-header relative z-10 flex items-center justify-between border-b border-cyan-200/[0.12] bg-black/30 px-4 py-5 sm:px-6">
           <div>
             <h1 className="gnz-heading flex items-center gap-3 text-2xl font-black sm:text-3xl">
               <GnozianGlyph name="trophy" size={30} className="text-amber-400/90" />
@@ -123,13 +123,13 @@ export default function AchievementsScreen({ achievements, onClose }: Props) {
               playUiClick();
               onClose();
             }}
-            className="text-2xl text-slate-500 transition-colors hover:text-white"
+            className="gnz-achievements-close flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-amber-600/50 bg-slate-900/80 transition-colors hover:bg-slate-700/90" aria-label={t('modal.close')}
           >
-            ✕
+            <Gnz2DAsset name="close" className="h-6 w-6" />
           </button>
         </div>
 
-        <div className="border-b border-cyan-200/[0.1] bg-black/28 px-4 py-4 sm:px-6">
+        <div className="gnz-achievements-progress border-b border-cyan-200/[0.1] bg-black/28 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <div className="h-3 overflow-hidden rounded-full bg-stone-700">
@@ -146,7 +146,7 @@ export default function AchievementsScreen({ achievements, onClose }: Props) {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          <nav className="flex shrink-0 flex-row gap-1 overflow-x-auto overscroll-x-contain border-b border-cyan-200/[0.12] bg-black/28 px-2 py-2 lg:w-[13.75rem] lg:flex-col lg:gap-0.5 lg:border-b-0 lg:border-r lg:px-2 lg:py-4">
+          <nav className="gnz-achievements-tabs flex shrink-0 flex-row gap-1 overflow-x-auto overscroll-x-contain border-b border-cyan-200/[0.12] bg-black/28 px-2 py-2 lg:w-[13.75rem] lg:flex-col lg:gap-0.5 lg:border-b-0 lg:border-r lg:px-2 lg:py-4">
             {categories.map(cat => (
               <GnzNavRailBtn
                 key={cat}
@@ -184,7 +184,7 @@ export default function AchievementsScreen({ achievements, onClose }: Props) {
               </div>
             </div>
 
-        <div className="relative z-10 flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="gnz-achievements-list relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AnimatePresence>
               {filteredAchievements.map(([id, ach]) => {
@@ -285,14 +285,14 @@ export default function AchievementsScreen({ achievements, onClose }: Props) {
           </div>
         </div>
 
-        <div className="border-t border-cyan-200/[0.12] bg-black/35 p-4">
+        <div className="gnz-achievements-footer border-t border-cyan-200/[0.12] bg-black/35 p-4">
           <button
             type="button"
             onClick={() => {
               playUiClick();
               onClose();
             }}
-            className="w-full rounded-lg bg-gradient-to-r from-amber-600 to-amber-800 px-6 py-2 font-bold text-white transition-all hover:from-amber-500 hover:to-amber-700"
+            className="gnz-2d-button gnz-2d-button--primary w-full rounded-lg px-6 py-2 font-bold text-white transition-all"
           >
             {t('modal.close')}
           </button>
