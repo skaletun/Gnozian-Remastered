@@ -879,6 +879,8 @@ export interface GameSettings {
   humanCivIndex: number;
   /** Optional leader display name for the human; empty uses the template leader name. */
   humanNickname: string;
+  /** Civ slots reserved for human players in online or hotseat multiplayer. */
+  mpHumanSlots?: number[];
   /** Optional hash/id of imported custom map. */
   customMapHash?: string;
   /** Optional display name for imported custom map. */
