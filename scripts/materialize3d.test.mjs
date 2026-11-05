@@ -1,9 +1,9 @@
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
-test('all 229 native animated GLB models materialize and validate',()=>{
-  const out=execFileSync(process.execPath,['scripts/materialize3d.mjs'],{encoding:'utf8'});
-  assert.match(out,/229 verified GLB/);
-  const verify=execFileSync(process.execPath,['scripts/materialize3d.mjs','--verify'],{encoding:'utf8'});
-  assert.match(verify,/229 verified GLB/);
+
+test('all 229 animated GLB assets materialize and validate', () => {
+  const generated = execFileSync(process.execPath, ['scripts/materialize3d.mjs'], { encoding: 'utf8' });
+  expect(generated).toMatch(/229 verified GLB/);
+  const verified = execFileSync(process.execPath, ['scripts/materialize3d.mjs','--verify'], { encoding: 'utf8' });
+  expect(verified).toMatch(/229 verified GLB/);
 });
