@@ -1,4 +1,6 @@
 export { GnzButton } from './GnzButton';
+export { Gnz2DAsset } from './Gnz2DAsset';
+export type { Gnz2DIconName } from './Gnz2DAsset';
 export { GnzPanel } from './GnzPanel';
 export { GnzModalFrame } from './GnzModalFrame';
 export { GnzAppModalLayout, GnzNavRailBtn } from './GnzAppModalLayout';

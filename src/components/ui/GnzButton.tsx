@@ -35,7 +35,7 @@ export function GnzButton({
     <button
       type={type}
       className={twMerge(
-        'inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-xl px-4 py-2.5 transition-all duration-150 disabled:pointer-events-none disabled:opacity-40',
+        `gnz-2d-button gnz-2d-button--${variant} inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-xl px-4 py-2.5 transition-all duration-150 disabled:pointer-events-none disabled:opacity-40`,
         variants[variant],
         className
       )}

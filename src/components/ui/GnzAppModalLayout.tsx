@@ -53,8 +53,9 @@ export function GnzNavRailBtn({
     <button
       type="button"
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={twMerge(
-        'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-semibold transition-colors sm:text-sm',
+        'gnz-2d-tab flex shrink-0 items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-semibold transition-colors sm:text-sm',
         'lg:w-full lg:justify-start',
         active
           ? 'bg-cyan-950/60 text-cyan-50 ring-1 ring-amber-400/30'
