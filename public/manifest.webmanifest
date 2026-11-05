@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Gnozian Remastered",
+  "short_name": "Gnozian",
+  "description": "Offline-first low-poly civilization strategy",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101c23",
+  "theme_color": "#101c23",
+  "icons": [
+    {
+      "src": "icons/gnozian.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "meta": {
+    "format_version": "4.9",
+    "model_format": "free",
+    "box_uv": false
+  },
+  "name": "Gnozian Scout - Low Poly Source",
+  "model_identifier": "gnozian_scout",
+  "resolution": {
+    "width": 16,
+    "height": 16
+  },
+  "elements": [
+    {
+      "name": "Body",
+      "type": "cube",
+      "uuid": "40ebd771-0f70-4880-860a-44a5ac85f1a1",
+      "from": [
+        -3,
+        0,
+        -2
+      ],
+      "to": [
+        3,
+        9,
+        2
+      ],
+      "color": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {}
+    },
+    {
+      "name": "Head",
+      "type": "cube",
+      "uuid": "29aa2eba-347c-40b6-80e2-6416e80f939a",
+      "from": [
+        -2,
+        9,
+        -2
+      ],
+      "to": [
+        2,
+        13,
+        2
+      ],
+      "color": 2,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {}
+    },
+    {
+      "name": "Pack",
+      "type": "cube",
+      "uuid": "68b2b911-2836-450d-9625-5e632745c96e",
+      "from": [
+        -2,
+        4,
+        2
+      ],
+      "to": [
+        2,
+        9,
+        5
+      ],
+      "color": 3,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "faces": {}
+    }
+  ],
+  "outliner": [
+    "40ebd771-0f70-4880-860a-44a5ac85f1a1",
+    "29aa2eba-347c-40b6-80e2-6416e80f939a",
+    "68b2b911-2836-450d-9625-5e632745c96e"
+  ],
+  "textures": [],
+  "animations": []
+}
