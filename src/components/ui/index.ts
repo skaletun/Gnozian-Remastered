@@ -1,5 +1,6 @@
 export { GnzButton } from './GnzButton';
 export { Gnz2DAsset } from './Gnz2DAsset';
+export { GnzResourceIcon, RASTER_RESOURCE_IDS, resourceArtUrl } from './GnzResourceIcon';
 export type { Gnz2DIconName } from './Gnz2DAsset';
 export { GnzPanel } from './GnzPanel';
 export { GnzModalFrame } from './GnzModalFrame';

@@ -198,3 +198,31 @@
   .gnz-mobile-city-sheet .gnz-city-content{padding:7px;}
   .gnz-mobile-pause .gnz-panel{padding:9px;}
 }
+
+/* Literal transparent WEBP assets from the generated art archive.
+   Images never stretch with the surrounding buttons and retain real pixel detail. */
+.gnz-raster-resource {
+  object-fit:contain;
+  image-rendering:auto;
+  vertical-align:middle;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.48));
+}
+.rhm-yield-item>.gnz-raster-resource {
+  width:22px!important;
+  height:22px!important;
+  flex:0 0 22px!important;
+}
+.rhm-resource-cell>.gnz-raster-resource {
+  width:21px!important;
+  height:21px!important;
+  grid-row:span 2;
+}
+.gnz-city-yield>.gnz-raster-resource{
+  width:20px;
+  height:20px;
+}
+@media (orientation:landscape) and (max-height:440px) {
+  .rhm-yield-item>.gnz-raster-resource{
+    width:19px!important;height:19px!important;flex-basis:19px!important;
+  }
+}

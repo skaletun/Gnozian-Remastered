@@ -92,7 +92,7 @@ export default function MobileMainMenu({
           'Open your browser menu and choose Install App or Add to Home Screen.'}</span>
         <button type="button" onClick={()=>setShowInstallHint(false)} aria-label={isRu?'Закрыть':'Close'}>✕</button>
       </div>}
-      <div className="rmm-identity">{isRu?'ПРАВИТЕЛЬ':'LEADER'} <strong>{playerNickname||'Gnozian'}</strong><span>✦</span> v{GNOZIAN_RELEASE_VERSION}</div>
+      <div className="rmm-identity">{isRu?'ПРАВИТЕЛЬ':'LEADER'} <strong>{playerNickname||'Gnozian'}</strong><span>✦</span> v{GNOZIAN_RELEASE_VERSION} <span className="gnz-art-edition" data-art-edition="imagegen-raster-v1">· ART REMASTER</span></div>
     </div>
     <footer className="rmm-footer"><span>GNOZIAN REMASTERED</span><span>{isRu?'ОДИНОЧНАЯ ИГРА ДОСТУПНА ОФЛАЙН':'SINGLE PLAYER AVAILABLE OFFLINE'}</span></footer>
   </main>;
