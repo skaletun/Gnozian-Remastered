@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import type { GnozianGlyphName } from './ui';
 import { GnozianGlyph } from './ui';
 import { getLanguage, t } from '../i18n';
+import { GnzResourceIcon } from './ui/GnzResourceIcon';
 
 export type MobileHudPane = 'menu' | 'cities' | 'resources' | null;
 
@@ -195,7 +196,7 @@ export function MobileHudChrome({
             {yields.map(yieldItem => (
               <div className="rhm-resource-cell" key={yieldItem.id}
                 title={yieldItem.label}>
-                <GnozianGlyph name={yieldItem.icon} size={18} />
+                <GnzResourceIcon resource={yieldItem.id} size={21} />
                 <span className="rhm-resource-name">{yieldItem.label}</span>
                 <strong style={{ color: yieldItem.color }}>{yieldItem.stock}</strong>
                 <small style={{ color: yieldItem.perTurn < 0 ? '#ff8888' : yieldItem.color }}>

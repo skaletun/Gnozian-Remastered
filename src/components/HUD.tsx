@@ -1,5 +1,6 @@
 import { useEffect, useMemo, memo, useRef, useState } from 'react';
 import './mobile-hud.css';
+import { GnzResourceIcon } from './ui/GnzResourceIcon';
 import { MobileHudChrome, type MobileHudPane } from './MobileHudChrome';
 import { AnimatePresence, motion } from 'framer-motion';
 import type {
@@ -772,7 +773,7 @@ export default function HUD({
                   className={`flex min-h-[2.25rem] items-center justify-center gap-1.5 rounded-md border border-amber-900/20 bg-black/20 px-1.5 py-1 ${compactHud?'rhm-yield-item':''}`}
                   title={`${stockLabel} · ${perTurn >= 0 ? '+' : ''}${perTurn}/t`}
                 >
-                  <GnozianGlyph name={YIELD_GLYPH[res]} size={compactHud ? 15 : 16} className="shrink-0 text-stone-300/95" />
+                  <GnzResourceIcon resource={res} size={compactHud ? 22 : 20} className="shrink-0" />
                   <div className="flex min-w-0 flex-col leading-none">
                     <motion.span
                       key={`${res}-stock-${stock}`}
@@ -1301,11 +1302,7 @@ function TileBlock({
           .filter(([, v]) => v > 0)
           .map(([k, v]) => (
             <div key={k} className="flex items-center gap-0.5 rounded bg-black/35 px-1.5 py-0.5">
-              <GnozianGlyph
-                name={YIELD_GLYPH[k as keyof typeof YIELD_GLYPH] ?? 'target'}
-                size={11}
-                className="text-stone-300/90"
-              />
+              <GnzResourceIcon resource={k} size={14} className="shrink-0" />
               <span
                 className="text-[11px] font-bold leading-none"
                 style={{ color: RESOURCE_COLORS[k as keyof typeof RESOURCE_COLORS] }}

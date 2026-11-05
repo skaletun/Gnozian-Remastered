@@ -28,8 +28,9 @@ import {
   specialistCapForCity,
 } from '../game/systems/settlementCore';
 import { t } from '../i18n';
-import { GnozianGlyph, GnozianPanelCorners, type GnozianGlyphName } from './ui';
+import { GnozianGlyph, GnozianPanelCorners } from './ui';
 import { useLayoutProfile } from '../hooks/useLayoutProfile';
+import { GnzResourceIcon } from './ui/GnzResourceIcon';
 
 interface Props {
   city: City;
@@ -53,15 +54,6 @@ function tl(key: string, fallback: string): string {
   return v === key ? fallback : v;
 }
 
-const YIELD_GLYPH: Record<'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith' | 'happiness', GnozianGlyphName> = {
-  food: 'food',
-  production: 'cog',
-  gold: 'trophy',
-  science: 'flask',
-  culture: 'culture',
-  faith: 'religion',
-  happiness: 'sparkles',
-};
 
 const DISTRICT_BUILD_ORDER: DistrictType[] = [
   'rural_farms',
@@ -331,7 +323,7 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
                 animate={{ opacity: 1, scale: 1 }}
                 className="gnz-city-yield flex items-center gap-1.5 rounded-lg border border-amber-900/30 bg-stone-900/50 px-3 py-1.5"
               >
-                <GnozianGlyph name={YIELD_GLYPH[res]} size={14} className="text-stone-300/90" />
+                <GnzResourceIcon resource={res} size={20} />
                 <span className="text-xs font-bold" style={{ color: RESOURCE_COLORS[res] }}>
                   +{val}
                 </span>
@@ -1098,11 +1090,7 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
                           >
                             <span className="inline-flex items-center gap-1">
                               +{v}
-                              <GnozianGlyph
-                                name={YIELD_GLYPH[k as keyof typeof YIELD_GLYPH] ?? 'target'}
-                                size={12}
-                                className="text-stone-300/90"
-                              />
+                              <GnzResourceIcon resource={k} size={16} />
                               {t(`city.yield.${k as 'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith'}`)}
                             </span>
                           </span>
