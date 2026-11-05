@@ -45,6 +45,7 @@ import { chooseProductionItem } from './aiEconomyPlanner';
 import { chooseCombatObjective } from './aiMilitaryPlanner';
 import { chooseSettlerObjective } from './aiExpansionPlanner';
 import { chooseWorkerObjective } from './aiWorkerPlanner';
+import { moveAiUnitToward } from './aiUnitMovement';
 import { chooseGreatPersonObjective } from './aiGreatPersonPlanner';
 
 export type AIEngineAPI = {
@@ -399,22 +400,11 @@ function runCombatMovesUntilIdle(
       break;
     }
     if (objective?.kind === 'move') {
-      const step = api.bestNeighborToward(state, unit, objective.targetQ, objective.targetR);
-      if (step) {
-        state = api.moveUnit(state, unitId, step.q, step.r);
-        continue;
-      }
-    }
-
-    if (rng() < 0.25 + posture.skill * 0.15) {
-      const dirs = getNeighbors(unit.q, unit.r, state.tiles[0].length, state.tiles.length);
-      if (dirs.length > 0) {
-        const d = dirs[Math.floor(rng() * dirs.length)]!;
-        if (api.canFriendlyStackOnTile(state, civIndex, unit.type, d.q, d.r, unitId)) {
-          state = api.moveUnit(state, unitId, d.q, d.r);
-          continue;
-        }
-      }
+      const next = moveAiUnitToward(state, unitId, {q:objective.targetQ,r:objective.targetR}, api);
+      // If no legal move exists, do not wander randomly or retry the same tile.
+      if (next === state) break;
+      state = next;
+      continue;
     }
     break;
   }
@@ -435,30 +425,18 @@ function runSettler(
   if (objective.action === 'settle') {
     s = api.foundCity(s, civIndex, unit.q, unit.r, unit.id);
   } else if (objective.action === 'move') {
-    const step = api.bestNeighborToward(s, unit, objective.q, objective.r);
-    if (step && api.canFriendlyStackOnTile(s, civIndex, unit.type, step.q, step.r, unit.id)) {
-      s = api.moveUnit(s, unit.id, step.q, step.r);
-    }
+    s = moveAiUnitToward(s, unit.id, {q:objective.q,r:objective.r}, api);
   }
   return s;
 }
 
-function runMissionary(state: GameState, civIndex: number, unit: import('./types').Unit, api: AIEngineAPI, rng: () => number): GameState {
+function runMissionary(state: GameState, civIndex: number, unit: import('./types').Unit, api: AIEngineAPI): GameState {
   const foreign = state.cities.filter(c => c.owner !== civIndex);
   if (foreign.length === 0) return state;
   const target = foreign.reduce((a, b) =>
     hexDistance(unit.q, unit.r, a.q, a.r) <= hexDistance(unit.q, unit.r, b.q, b.r) ? a : b
   );
-  const step = api.bestNeighborToward(state, unit, target.q, target.r);
-  if (step) return api.moveUnit(state, unit.id, step.q, step.r);
-  if (rng() < 0.4) {
-    const dirs = getNeighbors(unit.q, unit.r, state.tiles[0].length, state.tiles.length);
-    const d = dirs[Math.floor(rng() * dirs.length)];
-    if (d && api.canFriendlyStackOnTile(state, civIndex, unit.type, d.q, d.r, unit.id)) {
-      return api.moveUnit(state, unit.id, d.q, d.r);
-    }
-  }
-  return state;
+  return moveAiUnitToward(state,unit.id,{q:target.q,r:target.r},api);
 }
 
 function runGreatPerson(
@@ -473,9 +451,7 @@ function runGreatPerson(
     return api.activateGreatPerson(state, unit.id, objective.cityId);
   }
   if (objective.action !== 'move') return state;
-  const step = api.bestNeighborToward(state, unit, objective.q, objective.r);
-  if (step) return api.moveUnit(state, unit.id, step.q, step.r);
-  return state;
+  return moveAiUnitToward(state,unit.id,{q:objective.q,r:objective.r},api);
 }
 
 export type RunAITurnOptions = {
@@ -565,7 +541,7 @@ export function runAITurn(state: GameState, civIndex: number, api: AIEngineAPI, 
     }
 
     if (u.type === 'missionary') {
-      s = runMissionary(s, civIndex, u, aiApi, rng);
+      s = runMissionary(s, civIndex, u, aiApi);
       continue;
     }
 
@@ -583,9 +559,15 @@ export function runAITurn(state: GameState, civIndex: number, api: AIEngineAPI, 
           continue;
         }
         if (objective.action === 'move') {
-          const step = aiApi.bestNeighborToward(s, u, objective.q, objective.r);
-          if (step && aiApi.canFriendlyStackOnTile(s, civIndex, u.type, step.q, step.r, u.id)) {
-            s = aiApi.moveUnit(s, u.id, step.q, step.r);
+          s = moveAiUnitToward(s,u.id,{q:objective.q,r:objective.r},aiApi);
+          // A worker arriving with remaining movement can improve its new tile
+          // immediately, if the actual engine reports the improvement as legal.
+          const worker = s.units.find(x=>x.id===u.id);
+          if (worker && worker.movement > 0
+            && worker.q===objective.q && worker.r===objective.r) {
+            const improvements = aiApi.listValidWorkerImprovements(s,worker.id);
+            const build = chooseWorkerObjective(s,civIndex,worker,improvements,aiApi,posture,rng);
+            if (build.action === 'build') s = aiApi.buildImprovement(s,worker.id,build.improvement);
           }
         }
       }
