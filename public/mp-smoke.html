@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gnozian MP QA</title><style>body{background:#101b26;color:white;font:16px system-ui;padding:20px;max-width:720px;margin:auto}button{padding:12px 18px;background:#38665b;color:#fff;border:0;border-radius:8px}pre{white-space:pre-wrap;background:#162e39;border-radius:8px;padding:16px}</style></head><body><h1>Gnozian MP API smoke test</h1><p>Runs a 2-player test match against the staging API. Session secrets are never printed or persisted.</p><button id="run">Run multiplayer smoke test</button><pre id="log">Ready.</pre><script>
+const API='https://gnozian-remastered-mp.workertink-directory.workers.dev/v2';
+const log=document.getElementById('log');let lines=[];
+async function call(path,method='GET',body=null,secret=null){
+  const h={'Content-Type':'application/json'};
+  if(secret)h.Authorization='Bearer '+secret;
+  const r=await fetch(API+path,{method,headers:h,body:body===null?undefined:JSON.stringify(body)});
+  const j=await r.json();if(!r.ok)throw Error(path+' HTTP '+r.status+' '+j.code+' '+j.error);
+  return {status:r.status,result:j};
+}
+document.getElementById('run').onclick=async()=>{
+  const btn=document.getElementById('run');btn.disabled=true;lines=[];log.textContent='Running...';
+  const add=(name,status)=>{lines.push(name+' — '+status);log.textContent=lines.join('\n');};
+  try{
+    const health=await call('/health');if(!health.result.ok)throw Error('health not OK');add('Health','PASS '+health.status);
+    const seed=424242;
+    const c=await call('/matches','POST',{label:'QA '+Date.now(),maxPlayers:2,displayName:'QA Host',seed});
+    const host=c.result;add('Create match','PASS '+c.status);
+    const j=await call('/matches/'+host.matchId+'/join','POST',{displayName:'QA Guest'});
+    const guest=j.result;add('Join match','PASS '+j.status);
+    const ready=await call('/matches/'+host.matchId+'/ready','POST',{ready:true},guest.playerToken);
+    add('Guest ready','PASS '+ready.status);
+    const start=await call('/matches/'+host.matchId+'/start','POST',{settings:{seed,numCivs:2}},host.hostToken);
+    add('Start match','PASS '+start.status);
+    const get=await call('/matches/'+host.matchId,'GET',null,guest.playerToken);
+    if(get.result.currentSlot!==0||get.result.seats.length!==2)throw Error('invalid started lobby state');
+    add('Get match','PASS '+get.status);
+    const first=await call('/matches/'+host.matchId+'/turns','POST',{clientVersion:0,steps:[],digest:'a'.repeat(64)},host.playerToken);
+    if(first.result.stateVersion!==1||first.result.currentSlot!==1)throw Error('wrong turn sequence');
+    add('Submit turn','PASS '+first.status);
+    const history=await call('/matches/'+host.matchId+'/turns?after=0','GET',null,guest.playerToken);
+    if(history.result.operations.length!==1||history.result.operations[0].version!==1)throw Error('turn event missing');
+    add('Replay turn log','PASS '+history.status);
+    let blocked=false;
+    try{await call('/matches/'+host.matchId+'/turns','POST',{clientVersion:1,steps:[],digest:'b'.repeat(64)},host.playerToken);}
+    catch(e){blocked=true;add('Reject wrong player','PASS '+String(e.message).slice(0,70));}
+    if(!blocked)throw Error('wrong player was able to submit turn');
+    const chat=await call('/matches/'+host.matchId+'/chat','POST',{message:'ready to play'},guest.playerToken);
+    add('Post chat','PASS '+chat.status);
+    add('RESULT','PASS — all 9 checks');
+  }catch(e){add('RESULT','FAIL '+String(e.message));}
+  finally{btn.disabled=false;}
+};
+</script></body></html>
