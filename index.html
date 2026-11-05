@@ -6,4 +6,11 @@
 <link rel="manifest" href="%BASE_URL%manifest.webmanifest" />
 <link rel="icon" type="image/svg+xml" href="%BASE_URL%icons/gnozian.svg" />
 <title>Gnozian Remastered</title></head>
-<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<body><div id="root"></div>
+<div id="gnz-landscape-required" role="alert" aria-live="polite" aria-label="Поверните устройство горизонтально">
+  <div class="gnz-rotate-phone" aria-hidden="true"><div class="gnz-phone-screen"><span>⬡</span></div></div>
+  <div class="gnz-orientation-title">ПОВЕРНИ УСТРОЙСТВО</div>
+  <p class="gnz-orientation-subtitle">Gnozian Remastered работает на телефонах и планшетах только в горизонтальном режиме.</p>
+  <p class="gnz-orientation-english">Rotate your device to landscape to play.</p>
+  <div class="gnz-orientation-caption">GNOZIAN · REMASTERED</div>
+</div><script type="module" src="/src/main.tsx"></script></body></html>

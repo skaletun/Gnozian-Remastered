@@ -1,34 +1,43 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 export type LayoutProfile = 'desktop' | 'tablet' | 'mobile';
+export interface LayoutDimensions { width: number; height: number; touch: boolean }
+
+/** Landscape phones must use the phone HUD even when width exceeds 820 px. */
+export function resolveLayoutProfile({ width, height, touch }: LayoutDimensions): LayoutProfile {
+  if (width > height && height <= 600 && width <= 1100) return 'mobile';
+  if (width <= 820 || (touch && width <= 1024)) return 'mobile';
+  if (width <= 1220 || touch) return 'tablet';
+  return 'desktop';
+}
 
 export function useLayoutProfile(): LayoutProfile {
-  const [w, setW] = useState(() => (typeof window === 'undefined' ? 1280 : window.innerWidth));
-  const [touch, setTouch] = useState(() => (typeof window !== 'undefined' ? window.matchMedia('(pointer: coarse)').matches : false));
+  const [dimensions, setDimensions] = useState<LayoutDimensions>(() => ({
+    width: typeof window === 'undefined' ? 1280 : window.innerWidth,
+    height: typeof window === 'undefined' ? 800 : window.innerHeight,
+    touch: typeof window !== 'undefined' ? window.matchMedia('(pointer: coarse)').matches : false,
+  }));
   const resizeRafRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const media = window.matchMedia('(pointer: coarse)');
     const onResize = () => {
-      if (resizeRafRef.current != null) cancelAnimationFrame(resizeRafRef.current);
+      if (resizeRafRef.current !== null) cancelAnimationFrame(resizeRafRef.current);
       resizeRafRef.current = requestAnimationFrame(() => {
         resizeRafRef.current = null;
-        setW(window.innerWidth);
+        setDimensions({ width: window.innerWidth, height: window.innerHeight, touch: media.matches });
       });
     };
-    const media = window.matchMedia('(pointer: coarse)');
-    const onMedia = () => setTouch(media.matches);
     window.addEventListener('resize', onResize);
-    media.addEventListener?.('change', onMedia);
+    window.addEventListener('orientationchange', onResize);
+    media.addEventListener?.('change', onResize);
     return () => {
-      if (resizeRafRef.current != null) cancelAnimationFrame(resizeRafRef.current);
+      if (resizeRafRef.current !== null) cancelAnimationFrame(resizeRafRef.current);
       window.removeEventListener('resize', onResize);
-      media.removeEventListener?.('change', onMedia);
+      window.removeEventListener('orientationchange', onResize);
+      media.removeEventListener?.('change', onResize);
     };
   }, []);
-  return useMemo(() => {
-    if (w <= 820 || (touch && w <= 1024)) return 'mobile';
-    if (w <= 1220 || touch) return 'tablet';
-    return 'desktop';
-  }, [touch, w]);
-}
 
+  return useMemo(() => resolveLayoutProfile(dimensions), [dimensions]);
+}

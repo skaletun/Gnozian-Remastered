@@ -6,12 +6,12 @@ header{position:sticky;top:0;z-index:4;background:#132c36;border-bottom:1px soli
 h1{margin:0 18px 0 0;font-size:15px;color:#f4d7a2}button{padding:9px 14px;border:1px solid #9f9d75;border-radius:9px;background:#294b56;color:white;font-weight:700;cursor:pointer}button[aria-pressed=true]{background:#a47d46;color:#fff1cf}
 p{margin:2px;font-size:11px;color:#bfd0d0}.view{display:flex;justify-content:center;padding:18px;min-height:calc(100vh - 80px)}.shell{box-shadow:0 20px 40px #000a;border:5px solid #2e505a;border-radius:22px;overflow:hidden;background:#07121a;max-width:100%}iframe{width:100%;height:100%;display:block;border:0;background:#081624}
 </style></head><body>
-<header><h1>GNOZIAN · MOBILE QA</h1><button data-w="390" data-h="844" aria-pressed="true">390 × 844</button>
-<button data-w="360" data-h="740" aria-pressed="false">360 × 740</button>
-<button data-w="844" data-h="390" aria-pressed="false">844 × 390</button>
-<button data-w="768" data-h="1024" aria-pressed="false">768 × 1024</button>
+<header><h1>GNOZIAN · MOBILE QA</h1><button data-w="390" data-h="844" aria-pressed="false">390 × 844 (поворот)</button>
+<button data-w="360" data-h="740" aria-pressed="false">360 × 740 (поворот)</button>
+<button data-w="844" data-h="390" aria-pressed="true">844 × 390 (игра)</button>
+<button data-w="932" data-h="430" aria-pressed="false">932 × 430 (игра)</button>
 <p>Вложенный экран создаёт отдельный CSS viewport. Проверка жестов требует настоящего сенсорного устройства.</p></header>
-<div class="view"><div class="shell" id="shell" style="width:390px;height:844px"><iframe
+<div class="view"><div class="shell" id="shell" style="width:844px;height:390px"><iframe
 title="Gnozian Remastered mobile game" src="./" loading="eager" allow="fullscreen"></iframe></div></div>
 <script>
 document.querySelectorAll('button[data-w]').forEach(button=>button.addEventListener('click',()=>{

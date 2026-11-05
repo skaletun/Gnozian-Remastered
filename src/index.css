@@ -541,3 +541,36 @@ textarea {
   background: rgba(125, 211, 252, 0.28);
   color: inherit;
 }
+
+
+/* Landscape-only mobile game: portrait never exposes interactive gameplay.
+   Installed PWAs request landscape through the manifest. This guard also
+   works on iOS Safari and browsers that do not expose orientation.lock(). */
+#gnz-landscape-required{display:none}
+@media (orientation:portrait) and (max-width:1024px),
+       (orientation:portrait) and (pointer:coarse){
+  html,body{width:100%;height:100%;overflow:hidden!important}
+  #root{visibility:hidden!important;pointer-events:none!important;user-select:none!important}
+  #gnz-landscape-required{
+    position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;
+    justify-content:center;align-items:center;gap:18px;
+    padding:calc(28px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right))
+            calc(28px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
+    text-align:center;overflow:auto;color:#f5e6c5;
+    background:radial-gradient(circle at 50% 33%,#285064,#071824 70%);
+    font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+    overscroll-behavior:none;
+  }
+  .gnz-rotate-phone{height:100px;width:125px;display:grid;place-items:center}
+  .gnz-phone-screen{
+    display:grid;place-items:center;width:120px;height:66px;border:6px solid #dab678;
+    background:#183d4a;border-radius:15px;box-shadow:0 10px 35px #0007;
+    position:relative;
+  }
+  .gnz-phone-screen:before{content:'';position:absolute;left:5px;top:calc(50% - 3px);height:6px;width:6px;background:#dfc38e;border-radius:50%}
+  .gnz-phone-screen span{font-size:40px;color:#e8c88f;line-height:1}
+  .gnz-orientation-title{font-size:clamp(21px,5vw,30px);font-weight:900;letter-spacing:.08em}
+  .gnz-orientation-subtitle{max-width:340px;font-size:15px;line-height:1.55;color:#c5d6d7;margin:0}
+  .gnz-orientation-english{font-size:12px;color:#9db2bc;margin:0}
+  .gnz-orientation-caption{margin-top:14px;font-size:10px;letter-spacing:.28em;color:#d7b67b;font-weight:800}
+}

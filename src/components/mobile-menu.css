@@ -8,3 +8,39 @@
 @media(max-width:380px){.rmm-root{padding-left:11px;padding-right:11px}.rmm-body{padding:24px 0 12px}.rmm-body h1{font-size:29px}.rmm-newgame,.rmm-continue{min-height:68px}.rmm-grid button{min-height:55px;padding:9px;font-size:11px}.rmm-sigil{margin:12px 0}.rmm-lead{font-size:12px}.rmm-footer{font-size:8px}}
 @media(max-height:660px){.rmm-body{justify-content:flex-start;padding-top:16px}.rmm-sigil{margin:10px 0}.rmm-lead{margin-top:6px}.rmm-root{overflow-y:auto}.rmm-grid button{min-height:50px}.rmm-newgame,.rmm-continue{min-height:65px}.rmm-footer{padding-top:12px}}
 @media(prefers-reduced-motion:reduce){.rmm-grid button:active,.rmm-newgame:active,.rmm-continue:active{transform:none}}
+
+
+/* Landscape-first menu: hero occupies left half; play and utilities occupy right. */
+@media (orientation:landscape) and (max-height:600px) and (max-width:1100px) {
+  .rmm-root{height:100dvh;min-height:0;overflow:hidden;padding:7px max(12px,env(safe-area-inset-right)) 7px max(12px,env(safe-area-inset-left))}
+  .rmm-top{min-height:35px}.rmm-mark{width:34px;height:34px;font-size:25px;border-radius:9px}
+  .rmm-toptext strong{font-size:12px}.rmm-connection{font-size:9px;padding:5px 9px}
+  .rmm-body{
+    flex:1;min-height:0;max-width:1100px;width:100%;padding:5px 0;
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.18fr);
+    grid-template-areas:"overline primary" "title primary" "lead grid" "identity grid";
+    grid-auto-rows:min-content;align-content:center;align-items:center;
+    column-gap:clamp(12px,3vw,32px);row-gap:5px;
+  }
+  .rmm-overline{grid-area:overline;margin:0;font-size:9px;letter-spacing:.16em}
+  .rmm-body h1{grid-area:title;font-size:clamp(22px,3.6vw,36px);line-height:1.13}
+  .rmm-lead{grid-area:lead;max-width:100%;margin:0 auto;font-size:11px;line-height:1.45}
+  .rmm-sigil{display:none}
+  .rmm-primary{grid-area:primary;gap:6px}
+  .rmm-newgame,.rmm-continue{min-height:60px;padding:8px 12px;border-radius:12px;gap:10px}
+  .rmm-button-symbol{width:34px;height:34px;flex-basis:34px;font-size:17px;border-radius:9px}
+  .rmm-primary strong{font-size:13px}.rmm-primary small{font-size:10px;margin-top:2px}
+  .rmm-grid{grid-area:grid;margin:0;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;align-self:center}
+  .rmm-grid button{min-height:52px;padding:6px;gap:5px;flex-direction:column;justify-content:center;text-align:center;font-size:10px;line-height:1.15;border-radius:9px}
+  .rmm-grid button span{font-size:16px;flex:0 0 auto}
+  .rmm-identity{grid-area:identity;margin:4px 0 0;font-size:9px;flex-wrap:wrap}
+  .rmm-footer{min-height:16px;font-size:8px;flex-shrink:0}
+  .rmm-install-hint{grid-column:1/-1;margin:0;padding:4px;font-size:10px;max-height:68px;overflow:auto}
+}
+@media (orientation:landscape) and (max-height:380px) and (max-width:1100px) {
+  .rmm-body{padding:2px 0;row-gap:2px}
+  .rmm-grid button{min-height:40px;font-size:9px}
+  .rmm-newgame,.rmm-continue{min-height:48px}
+  .rmm-lead{font-size:10px}
+  .rmm-identity{font-size:8px}
+}
