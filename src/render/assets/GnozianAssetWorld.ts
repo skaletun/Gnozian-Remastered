@@ -5,14 +5,14 @@ import {
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
 import type { GameState, Tile, Unit } from '../../game/types';
-import { hexWorldPosition } from '../../game/hexGeometry';
+import { hexWorldPosition, worldPointToAxial } from '../../game/hexGeometry';
 import { CIV_TEMPLATES } from '../../game/constants';
 
 type Kind='terrain'|'resources'|'improvements'|'buildings'|'units'|'wonders'|'cities'|'districts'|'props';
 type Wish={ key:string; kind:Kind; id:string; variant:string; lod:0|1; p:Vector3; size:number; yaw:number; clip:string };
 type Actor={ p:Vector3; end:number; kind:'move'|'attack' };
-type Live={ wish:Wish; root:TransformNode; cloned:InstantiatedEntries; groups:AnimationGroup[]; clip:string; actor?:Actor };
-type LastUnit={q:number;r:number;hasAttacked:boolean};
+type Live={ wish:Wish; root:TransformNode; cloned:InstantiatedEntries; groups:AnimationGroup[]; clip:string; actor?:Actor; nextAmbientAt:number };
+type LastUnit={q:number;r:number;hasAttacked:boolean;hp:number};
 const FAUNA=new Set(['cattle','sheep','deer','horse','fish']);
 const CAVALRY=new Set(['horseman','knight','cavalry']);
 const MACHINES=new Set(['tank','catapult','cannon','artillery','fighter','bomber','nuclear_missile']);
@@ -75,6 +75,11 @@ export class GnozianAssetWorld {
       }
     }
     for(const live of this.live.values()){
+      if(!live.actor && now >= live.nextAmbientAt) {
+        if(live.wish.kind==='resources' && FAUNA.has(live.wish.id)) this.play(live,live.wish.id==='fish'?'swim':'graze');
+        else if(live.wish.kind==='units' && (live.wish.id==='worker'||live.wish.id.startsWith('great_')))this.play(live,live.wish.id==='worker'?'work':'gesture');
+        live.nextAmbientAt=now+4500+(seed(Math.floor(live.root.position.x),Math.floor(live.root.position.z))%3500);
+      }
       const a=live.actor;if(!a)continue;
       if(now>=a.end){
         live.root.position.copyFrom(a.p);live.actor=undefined;this.play(live,'idle');continue;
@@ -95,8 +100,12 @@ export class GnozianAssetWorld {
     const state=this.state;
     if(!state||this.dead)return;
     const c=this.target(),shown:Array<{t:Tile;p:Vector3;d:number}>=[];
-    for(const row of state.tiles)for(const t of row){
-      if(t.revealed?.[this.viewer]===false)continue;
+    const hex=worldPointToAxial(c.x,c.z);
+    const qMin=Math.max(0,Math.floor(hex.q)-17),qMax=Math.ceil(hex.q)+17;
+    const rMin=Math.max(0,Math.floor(hex.r)-12),rMax=Math.min(state.tiles.length-1,Math.ceil(hex.r)+12);
+    for(let r=rMin;r<=rMax;r++)for(let q=qMin;q<=qMax;q++){
+      const t=state.tiles[r]?.[q];
+      if(!t||t.revealed?.[this.viewer]===false)continue;
       const p=world(t.q,t.r),d=Vector3.Distance(p,c);
       if(d<15)shown.push({t,p,d});
     }
@@ -125,7 +134,7 @@ export class GnozianAssetWorld {
       const p=world(city.q,city.r);if(Vector3.Distance(p,c)>17)continue;
       const variant=city.isCapital||city.settlementTier===3?'capital':city.settlementTier===1||city.settlementKind==='town'?'town':'city';
       const civilization=state.civilizations[city.owner];
-      const civId=CIV_TEMPLATES.find(x=>x.name===civilization?.name)?.id||CIV_TEMPLATES[city.owner%CIV_TEMPLATES.length]?.id||'roman_empire';
+      const civId=state.civilizationIdentity?.find(x=>x.civIndex===city.owner)?.templateId || CIV_TEMPLATES.find(x=>x.name===civilization?.name)?.id||CIV_TEMPLATES[city.owner%CIV_TEMPLATES.length]?.id||'roman_empire';
       this.wish('city:'+city.id,'cities',civId,p.add(new Vector3(0,height(t),0)),.92,variant);
       if(extras>105)continue;
       const buildings=city.buildings;
@@ -163,7 +172,14 @@ export class GnozianAssetWorld {
     }
     for(const w of this.wants.values()){
       const object=this.live.get(w.key);
-      if(object) {if(!object.actor)object.root.position.copyFrom(w.p);continue;}
+      if(object) {
+        if(!object.actor && !w.key.startsWith('unit:'))object.root.position.copyFrom(w.p);
+        if(w.kind==='terrain'){
+          if(Vector3.Distance(w.p,c)<8){if(!object.clip)this.play(object,'ambient');}
+          else if(object.clip){for(const group of object.groups)group.stop();object.clip='';}
+        }
+        continue;
+      }
       const u=url(w);
       if(this.absent.has(u))continue;
       if(this.cache.has(u)){if(this.spawn(w))dirty=true;continue;}
@@ -180,7 +196,7 @@ export class GnozianAssetWorld {
   private track(units:Unit[],tiles:Tile[][]):void {
     const next=new Map<number,LastUnit>();
     for(const u of units){
-      next.set(u.id,{q:u.q,r:u.r,hasAttacked:u.hasAttacked});
+      next.set(u.id,{q:u.q,r:u.r,hasAttacked:u.hasAttacked,hp:u.hp});
       const old=this.lastUnits.get(u.id),live=this.live.get('unit:'+u.id);
       if(!old||!live)continue;
       if(old.q!==u.q||old.r!==u.r){
@@ -188,6 +204,9 @@ export class GnozianAssetWorld {
         dst.y=t?height(t):.2;
         live.actor={p:dst,end:performance.now()+520,kind:'move'};
         this.play(live,CAVALRY.has(u.type)?'gallop':MACHINES.has(u.type)?'move':'walk');
+      }else if(old.hp>u.hp){
+        live.actor={p:live.root.position.clone(),end:performance.now()+500,kind:'attack'};
+        this.play(live,'defend');
       }else if(!old.hasAttacked&&u.hasAttacked){
         live.actor={p:live.root.position.clone(),end:performance.now()+460,kind:'attack'};
         this.play(live,RANGED.has(u.type)?'shoot':'attack');
@@ -229,9 +248,9 @@ export class GnozianAssetWorld {
         node.parent=root;
         for(const mesh of node.getChildMeshes(false))mesh.isPickable=false;
       }
-      const object:Live={wish:w,root,cloned,groups:cloned.animationGroups,clip:''};
+      const object:Live={wish:w,root,cloned,groups:cloned.animationGroups,clip:'',nextAmbientAt:performance.now()+4000+(seed(Math.floor(w.p.x),Math.floor(w.p.z))%3000)};
       this.live.set(w.key,object);
-      this.play(object,w.clip);
+      if(w.kind!=='terrain'||Vector3.Distance(w.p,this.target())<8)this.play(object,w.clip);
       return true;
     }catch(error){console.error('[Gnozian 3D] Instantiation failed '+w.key,error);this.absent.add(url(w));return false;}
   }
