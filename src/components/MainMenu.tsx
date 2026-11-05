@@ -27,6 +27,7 @@ import {
 import MapTypePreview from './MapTypePreview';
 import { validateTerrainImport, formatTerrainImportError } from '../map/mapEditorUtils';
 import { useLayoutProfile } from '../hooks/useLayoutProfile';
+import MobileMainMenu from './MobileMainMenu';
 import { assetUrl } from '../utils/assetUrl';
 import {
   MEMENTO_DEFINITIONS,
@@ -276,6 +277,20 @@ export default function MainMenu({
     'gnz-menu-btn gnz-menu-btn--primary flex w-full items-center justify-center gap-2 py-4 text-lg font-bold';
   const menuButtonAuxClass =
     'gnz-menu-btn gnz-menu-btn--aux flex flex-1 items-center justify-center gap-2 py-3';
+
+  if (compact && !showNewGame) {
+    return <MobileMainMenu
+      hasSave={hasSave}
+      playerNickname={playerNickname}
+      onNewGame={() => setShowNewGame(true)}
+      onContinueGame={onContinueGame}
+      onLoadGame={onOpenLoadGame}
+      onSettings={onOpenSettings}
+      onAchievements={onOpenAchievements}
+      onMapEditor={onOpenMapEditor}
+      onTutorial={onOpenTutorial}
+    />;
+  }
 
   return (
     <div className={`relative flex min-h-screen flex-col items-center overflow-y-auto overflow-x-hidden gnz-page-bg gnz-menu-shell ${
