@@ -3,6 +3,7 @@
  * Use with Tailwind: className="text-amber-300" for stroke via currentColor.
  */
 import { memo, type ReactNode } from 'react';
+import { Gnz2DAsset, type Gnz2DIconName } from '../Gnz2DAsset';
 
 export type GnozianGlyphName =
   | 'globe'
@@ -444,6 +445,25 @@ const GLYPHS: Record<GnozianGlyphName, (p: { sw: number }) => ReactNode> = {
   ),
 };
 
+
+/** Use crisp, gold-trimmed atomic artwork at display sizes. Text-sized glyphs
+ * remain their original currentColor vector outlines for maximum legibility. */
+const REMASTER_GLYPH: Partial<Record<GnozianGlyphName, Gnz2DIconName>> = {
+  globe:'world', empire:'empire', city:'city', crown:'trophy', chart:'economy',
+  book:'book', trophy:'trophy', target:'scout', star:'star', gear:'settings',
+  save:'save', map:'map', compass:'scout', rocket:'science', wave:'ocean',
+  dice:'hex', play:'play', door:'exit', bell:'warning', palette:'culture',
+  monitor:'eye', walk:'movement', sparkles:'star', chat:'diplomacy',
+  grid:'hex', sun:'star', flask:'science', swords:'war', temple:'government',
+  handshake:'diplomacy', warn:'warning', religion:'culture', volcano:'mountain',
+  monolith:'ruins', masks:'culture', spy:'eye', food:'food', shield:'shield',
+  sword:'war', bow:'archer', foot:'movement', cog:'production',
+  culture:'culture', science:'science', diplomacy:'diplomacy',
+  mountain:'mountain', islands:'ship', lake:'ocean', home:'city',
+  hammer:'hammer', pickaxe:'mine', war:'war', user:'population',
+  refresh:'continue', keyboard:'menu', check:'check',
+};
+
 export const GnozianGlyph = memo(function GnozianGlyph({
   name,
   size = 18,
@@ -455,6 +475,20 @@ export const GnozianGlyph = memo(function GnozianGlyph({
   className?: string;
   title?: string;
 }) {
+  const remastered = REMASTER_GLYPH[name];
+  if (size >= 20 && remastered) {
+    return (
+      <Gnz2DAsset
+        name={remastered}
+        size={size >= 82 ? 'lg' : size >= 45 ? 'md' : 'sm'}
+        width={size}
+        height={size}
+        className={`inline-block shrink-0 ${className ?? ''}`}
+        alt={title ?? ''}
+        aria-hidden={title ? undefined : true}
+      />
+    );
+  }
   const sw = 1.55;
   const Body = GLYPHS[name];
   return (
