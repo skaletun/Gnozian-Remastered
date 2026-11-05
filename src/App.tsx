@@ -1,3 +1,4 @@
+import { cityFoundingValidationError } from './game/cityFoundingRules';
 import {
   useState, useCallback, useEffect, useMemo, useRef, lazy, Suspense, startTransition, type ReactNode,
 } from 'react';
@@ -1463,14 +1464,16 @@ export default function App() {
   const handleFoundCity = useCallback(() => {
     if (!gameState) return;
     const me = localViewerCivIndex;
-    const selectedUnit = gameState.selectedUnitId
+    const selectedUnit = gameState.selectedUnitId != null
       ? gameState.units.find(u => u.id === gameState.selectedUnitId)
       : null;
     if (!selectedUnit || selectedUnit.type !== 'settler' || selectedUnit.owner !== me) return;
 
-    const tile = gameState.tiles[selectedUnit.r]?.[selectedUnit.q];
-    if (!tile || tile.city !== null) {
-      setGameState(prev => prev ? addMessage(prev, 'Cannot found city here!', 'warning') : null);
+    const error = cityFoundingValidationError(
+      gameState, me, selectedUnit.q, selectedUnit.r, selectedUnit.id
+    );
+    if (error) {
+      commitLocalState(addMessage(gameState, `Cannot found city: ${error}.`, 'warning', [me]));
       return;
     }
 

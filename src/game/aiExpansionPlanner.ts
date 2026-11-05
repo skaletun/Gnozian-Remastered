@@ -2,6 +2,7 @@ import type { GameState, Unit } from './types';
 import { getNeighbors, hexDistance } from './mapgen';
 import type { AIEngineAPI } from './ai';
 import type { AIPersonality, AIStrategicPosture } from './aiStrategy';
+import { cityFoundingSiteError } from './cityFoundingRules';
 
 export type SettlerObjective =
   | { action: 'settle'; score: number }
@@ -31,14 +32,20 @@ function scoreSettlementTile(
   rng: () => number
 ): number | null {
   const tile = state.tiles[r]?.[q];
-  if (!tile || !tile.revealed?.[civIndex]) return null;
-  if (tile.terrain === 'ocean' || tile.terrain === 'mountains' || tile.city) return null;
-  if (tile.owner != null && tile.owner !== civIndex) return null;
+  if (!tile || !tile.revealed?.[civIndex] || cityFoundingSiteError(state, civIndex, q, r)) return null;
+  // A settler should not found a city under the attack range of a known enemy.
+  const knownCombatEnemies = state.units.filter(u =>
+    u.owner !== civIndex && (u.strength > 0 || u.rangedStrength > 0)
+  );
+  const nearestCombatEnemy = knownCombatEnemies.reduce(
+    (distance, enemy) => Math.min(distance, hexDistance(q, r, enemy.q, enemy.r)),
+    Infinity
+  );
+  if (nearestCombatEnemy <= 1) return null;
 
   const ownDistance = nearestOwnCityDistance(state, civIndex, q, r);
   const foreignDistance = nearestForeignCityDistance(state, civIndex, q, r);
   if (ownDistance < 3) return null;
-  if (foreignDistance < 2 && posture.threatLevel > 0.35) return null;
 
   const centerYield = api.calcTileYield(tile);
   let ringScore = 0;
@@ -57,12 +64,15 @@ function scoreSettlementTile(
     (centerYield.gold ?? 0) * 1.2 +
     (centerYield.science ?? 0) * 2.2 +
     (centerYield.culture ?? 0) * 1.8;
-  const spacingScore = Math.min(14, ownDistance) * (personality.expansionist ? 1.1 : 0.65);
+  // Favor compact, defensible empires over isolated sites at maximum distance.
+  const idealDistance = personality.expansionist ? 6 : 5;
+  const spacingScore = ownDistance >= 90 ? 8 : Math.max(-4, 11 - Math.abs(ownDistance - idealDistance) * 2);
   const frontierScore = foreignDistance <= 6 ? (posture.threatLevel > 0.4 ? -8 : 3) : 0;
   const ownedBonus = tile.owner === civIndex ? 2.5 : 0;
   const developmentBias = posture.developmentPressure * 2.5;
+  const threatPenalty = nearestCombatEnemy <= 2 ? 22 : nearestCombatEnemy <= 3 ? 9 : 0;
 
-  return yieldScore + ringScore + spacingScore + frontierScore + ownedBonus + developmentBias + rng() * 1.2;
+  return yieldScore + ringScore + spacingScore + frontierScore + ownedBonus + developmentBias - threatPenalty + rng() * 1.2;
 }
 
 export function chooseSettlerObjective(

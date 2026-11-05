@@ -60,6 +60,7 @@ import { runAITurn, type AIEngineAPI } from './ai';
 import { createInitialAgeState, runAgeFrameworkTurn } from './ages/ageFramework';
 import { decideAiSettlementResponse } from './diplomacySettlementAi';
 import { findLeastCostMovementPath } from './pathfinding';
+import { cityFoundingValidationError } from './cityFoundingRules';
 import { findStrategicNextStep } from './aiPathfinding';
 import {
   productionReserveCap,
@@ -384,7 +385,9 @@ export function foundCity(
   r: number,
   unitId: number
 ): GameState {
-  const civ = state.civilizations[civIndex];
+  const blocked = cityFoundingValidationError(state, civIndex, q, r, unitId);
+  if (blocked) return addMessage(state, `Cannot found city: ${blocked}.`, 'warning', [civIndex]);
+  const civ = state.civilizations[civIndex]!;
   const civTemplate = getCivTemplateByName(civ.name);
   const cityNames = CIV_CITY_NAMES[civ.name] || ['City'];
   const usedNames = state.cities.filter(c => c.owner === civIndex).map(c => c.name);
