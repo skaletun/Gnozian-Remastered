@@ -1,15 +1,13 @@
 import type { GameState } from '../game/types';
 import type { GraphicsSettings } from '../game/settingsConstants';
-import type { CameraState } from '../game/hexMetrics';
+import type { WorldCameraView } from '../game/hexGeometry';
 import { memo } from 'react';
 import GameCanvas from './GameCanvas';
 
 interface Props {
   gameState: GameState;
-  liveCamera?: CameraState;
   onTileClick: (q: number, r: number, mods?: { altKey?: boolean; shiftKey?: boolean }) => void;
   onClearSelection?: () => void;
-  onCameraChange: (cam: CameraState) => void;
   graphics?: GraphicsSettings;
   cameraControls?: {
     sensitivity: number;
@@ -22,21 +20,23 @@ interface Props {
   onViewportSize?: (width: number, height: number) => void;
   localViewerCivIndex?: number;
   interactionTick?: number;
+  onWorldCameraChange?: (camera: WorldCameraView) => void;
+  focusHex?: {q:number;r:number;requestId:number}|null;
 }
 
 function GameMapView(props: Props) {
   return (
     <GameCanvas
       gameState={props.gameState}
-      liveCamera={props.liveCamera}
       onTileClick={props.onTileClick}
       onClearSelection={props.onClearSelection}
-      onCameraChange={props.onCameraChange}
       graphics={props.graphics}
       cameraControls={props.cameraControls}
       onViewportSize={props.onViewportSize}
       localViewerCivIndex={props.localViewerCivIndex}
       interactionTick={props.interactionTick}
+      onWorldCameraChange={props.onWorldCameraChange}
+      focusHex={props.focusHex}
     />
   );
 }
