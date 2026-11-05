@@ -45,4 +45,11 @@ for (const name of names) {
   }catch(error){if(error.code!=='ENOENT')throw error;}
   if(!isCurrent){await writeFile(file,data);changed++;}
 }
+if(!process.argv.includes('--verify')) {
+  const catalog=names.map(name=>{
+    const category=name.split('_')[0];
+    return {name,category,path:'models/'+category+'/'+name+'.glb'};
+  });
+  await writeFile(path.join(DEST,'catalog.json'),JSON.stringify(catalog));
+}
 console.log('Gnozian animated 3D assets: '+names.length+' verified GLB, '+totalBytes+' bytes, '+changed+' files updated');
