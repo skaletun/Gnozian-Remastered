@@ -3,7 +3,7 @@ import type { Language } from '../i18n';
 import { getLanguage, setLanguage } from '../i18n';
 import {
   DEFAULT_SETTINGS, GRAPHICS_PROFILE_PRESETS,
-  type GameSettings, type GraphicsProfile, type GraphicsSettings,
+  type GameSettings, type GraphicsSettings,
 } from '../game/settingsConstants';
 import { loadSettings, saveSettingsToStorage } from '../game/settingsStorage';
 import './mobile-settings.css';
@@ -155,7 +155,7 @@ export default function MobileSettingsScreen({ onClose, onSave, onLanguageChange
       <div className="rm-scroll" key={tab}>
         {tab==='display' && <div className="rm-section">
           <Choices name={strings.profile} value={settings.graphics.graphicsProfile === 'cinematic'?'quality':settings.graphics.graphicsProfile}
-            options={(['performance','balanced','quality'] as GraphicsProfile[]).map(value=>({
+            options={(['performance','balanced','quality'] as const).map(value=>({
               value,label:strings[value],
             }))} onChange={profile=>commit(old=>({
               ...old,graphics:{...old.graphics,...GRAPHICS_PROFILE_PRESETS[profile],graphicsProfile:profile,
