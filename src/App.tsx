@@ -48,6 +48,7 @@ import PlayerSetupScreen from './components/PlayerSetupScreen';
 import SaveLoadScreen from './components/SaveLoadScreen';
 import VictoryScreen from './components/VictoryScreen';
 import SettingsScreen from './components/SettingsScreen';
+import MobileSettingsScreen from './components/MobileSettingsScreen';
 import type { GameSettings } from './game/settingsConstants';
 import { loadSettings, saveSettingsToStorage } from './game/settingsStorage';
 import AchievementsScreen from './components/AchievementsScreen';
@@ -1702,10 +1703,9 @@ export default function App() {
         />
         <AnimatePresence>
           {showSettings && (
-            <SettingsScreen
-              onClose={() => setShowSettings(false)}
-              onSave={applyAppSettings}
-            />
+            {mobileLayout
+              ? <MobileSettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
+              : <SettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />}
           )}
         </AnimatePresence>
         <AnimatePresence>
@@ -2029,10 +2029,9 @@ export default function App() {
       {/* Settings screen */}
       <AnimatePresence>
           {showSettings && (
-            <SettingsScreen
-              onClose={() => setShowSettings(false)}
-              onSave={applyAppSettings}
-            />
+            {mobileLayout
+              ? <MobileSettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
+              : <SettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />}
           )}
       </AnimatePresence>
 
