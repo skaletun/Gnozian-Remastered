@@ -3,6 +3,7 @@ import { NATURAL_RESOURCES } from './constants';
 import { hexDistance } from './mapgen';
 import type { AIEngineAPI } from './ai';
 import type { AIStrategicPosture } from './aiStrategy';
+import { listLegalWorkerImprovementsAt } from './workerImprovementRules';
 
 export type WorkerObjective =
   | { action: 'build'; improvement: ImprovementType; score: number }
@@ -17,18 +18,6 @@ const IMPROVEMENT_PRIORITY: ImprovementType[] = [
   'farm',
   'trading_post',
 ];
-
-function preferredImprovementForTile(state: GameState, q: number, r: number, posture: AIStrategicPosture): ImprovementType | null {
-  const tile = state.tiles[r]?.[q];
-  if (!tile || tile.improvement !== 'none') return null;
-  const resource = tile.resource ? NATURAL_RESOURCES[tile.resource] : null;
-  if (resource?.improvement) return resource.improvement;
-  if (tile.terrain === 'hills' || tile.terrain === 'mountains') return 'mine';
-  if (tile.terrain === 'forest' || tile.terrain === 'jungle') return 'lumber_mill';
-  if (tile.terrain === 'desert' || tile.terrain === 'tundra' || tile.terrain === 'snow') return 'trading_post';
-  if (posture.victoryFocus === 'economy' && tile.river) return 'farm';
-  return 'farm';
-}
 
 function scoreImprovement(
   state: GameState,
@@ -86,6 +75,9 @@ export function chooseWorkerObjective(
   if (current && current.score >= 4) return current;
 
   const radius = posture.phase === 'opening' ? 5 : 7;
+  const knownCombatEnemies = state.units?.filter(enemy =>
+    enemy.owner !== civIndex && (enemy.strength > 0 || enemy.rangedStrength > 0)
+  ) ?? [];
   let bestTarget: { q: number; r: number; score: number } | null = null;
   for (let r = Math.max(0, unit.r - radius); r <= Math.min(state.tiles.length - 1, unit.r + radius); r++) {
     for (let q = Math.max(0, unit.q - radius); q <= Math.min((state.tiles[0]?.length ?? 1) - 1, unit.q + radius); q++) {
@@ -93,10 +85,16 @@ export function chooseWorkerObjective(
       const tile = state.tiles[r]?.[q];
       if (!tile || tile.owner !== civIndex || !tile.revealed?.[civIndex]) continue;
       if (tile.city != null || tile.terrain === 'ocean' || tile.improvement !== 'none') continue;
-      const improvement = preferredImprovementForTile(state, q, r, posture);
-      if (!improvement) continue;
+      // Never send a worker to a tile where the required improvement is locked.
+      const legal = listLegalWorkerImprovementsAt(state, civIndex, q, r);
+      if (legal.length === 0) continue;
+      if (knownCombatEnemies.some(enemy => hexDistance(enemy.q, enemy.r, q, r) <= 1)) continue;
+      const improvementScore = Math.max(...legal.map(improvement =>
+        scoreImprovement(state, q, r, improvement, api, posture) +
+        (IMPROVEMENT_PRIORITY.includes(improvement) ? 0.2 : 0)
+      ));
       const travelPenalty = hexDistance(unit.q, unit.r, q, r) * (0.9 - posture.skill * 0.25);
-      const score = scoreImprovement(state, q, r, improvement, api, posture) - travelPenalty + rng() * 0.4;
+      const score = improvementScore - travelPenalty + rng() * 0.4;
       if (!bestTarget || score > bestTarget.score) bestTarget = { q, r, score };
     }
   }

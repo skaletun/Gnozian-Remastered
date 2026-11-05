@@ -60,6 +60,8 @@ import { runAITurn, type AIEngineAPI } from './ai';
 import { createInitialAgeState, runAgeFrameworkTurn } from './ages/ageFramework';
 import { decideAiSettlementResponse } from './diplomacySettlementAi';
 import { findLeastCostMovementPath } from './pathfinding';
+import { cityFoundingValidationError } from './cityFoundingRules';
+import { workerImprovementValidationError, listLegalWorkerImprovementsAt } from './workerImprovementRules';
 import { findStrategicNextStep } from './aiPathfinding';
 import {
   productionReserveCap,
@@ -384,7 +386,9 @@ export function foundCity(
   r: number,
   unitId: number
 ): GameState {
-  const civ = state.civilizations[civIndex];
+  const blocked = cityFoundingValidationError(state, civIndex, q, r, unitId);
+  if (blocked) return addMessage(state, `Cannot found city: ${blocked}.`, 'warning', [civIndex]);
+  const civ = state.civilizations[civIndex]!;
   const civTemplate = getCivTemplateByName(civ.name);
   const cityNames = CIV_CITY_NAMES[civ.name] || ['City'];
   const usedNames = state.cities.filter(c => c.owner === civIndex).map(c => c.name);
@@ -849,6 +853,9 @@ export function combatUnit(
   const defender = stateAfterWar.units.find(u => u.id === defenderId);
   if (!attacker || !defender) return stateAfterWar;
   if (attacker.hasAttacked) return stateAfterWar;
+  if (attacker.strength <= 0 && attacker.rangedStrength <= 0) {
+    return addMessage(stateAfterWar, 'Civilian units cannot attack.', 'warning', [attacker.owner]);
+  }
   const rp = relationPair(stateAfterWar.relations, attacker.owner, defender.owner);
   if (attacker.owner !== defender.owner && rp?.status !== 'war') {
     return addMessage(stateAfterWar, 'Cannot attack without war declaration.', 'warning', [attacker.owner]);
@@ -903,6 +910,9 @@ export function attackCity(
   const attacker = s.units.find(u => u.id === attackerId);
   const city = s.cities.find(c => c.id === cityId);
   if (!attacker || !city || attacker.hasAttacked) return s;
+  if (attacker.strength <= 0 && attacker.rangedStrength <= 0) {
+    return addMessage(s, 'Civilian units cannot attack cities.', 'warning', [attacker.owner]);
+  }
   const defenderOwnerSlot = city.owner;
   if (attacker.owner === city.owner) return s;
   const rel = relationPair(s.relations, attacker.owner, city.owner);
@@ -924,6 +934,10 @@ export function attackCity(
 
   const combat = computeCityCombat(s, attacker, city);
   const { newCityHp, newAtkHp } = combat;
+  // Ranged fire can reduce fortifications, but only a surviving melee
+  // combatant can occupy and capture the city (standard 4X siege rule).
+  const capturedByMelee = newCityHp <= 0 && attacker.rangedStrength <= 0 && attacker.strength > 0 && newAtkHp > 0;
+  const cityHpAfterAttack = capturedByMelee ? newCityHp : Math.max(1, newCityHp);
 
   const atkCiv = s.civilizations[attacker.owner];
   const defCiv = s.civilizations[city.owner];
@@ -936,7 +950,7 @@ export function attackCity(
   let newCivs = applied.civilizations;
   let newCities = s.cities.map(c => {
     if (c.id !== cityId) return c;
-    return { ...c, hp: newCityHp };
+    return { ...c, hp: cityHpAfterAttack };
   });
   // Clone only rows around city and attacker to limit allocations
   const rowsToClone = new Set<number>();
@@ -945,13 +959,15 @@ export function attackCity(
   const newTiles = cloneTileRows(s.tiles, rowsToClone);
   let msg = combat.msg;
   let cityWasCaptured = false;
-  // City captured
-  if (newCityHp <= 0) {
+  if (newCityHp <= 0 && !capturedByMelee) {
+    msg = `${atkWho} → ${city.name}: defenses reduced to 1 HP · a surviving melee unit must capture the city`;
+  }
+  // Ownership transfers only when the city can actually be occupied.
+  if (capturedByMelee) {
     cityWasCaptured = true;
     msg = `${defWho} captured by ${atkName} (${atkWho})`;
     const oldOwner = city.owner;
     const wasCapital = !!city.isCapital;
-    const isMelee = (attacker.rangedStrength ?? 0) === 0 && newAtkHp > 0;
     newCities = newCities.map(c => {
       if (c.id !== cityId) return c;
       return {
@@ -986,8 +1002,8 @@ export function attackCity(
       return civ;
     });
 
-    // Move melee attacker into the captured city
-    if (isMelee) {
+    // Move surviving melee attacker into the captured city.
+    {
       if (newTiles[attacker.r] && newTiles[attacker.r][attacker.q]) {
         if (newTiles[attacker.r][attacker.q].unit === attacker.id) {
           newTiles[attacker.r][attacker.q].unit = null;
@@ -2384,16 +2400,6 @@ export function cancelTradeAgreement(state: GameState, agreementId: number, requ
   );
 }
 
-function civHasImprovementUnlock(state: GameState, civIndex: number, imp: Exclude<ImprovementType, 'none'>): boolean {
-  const civ = state.civilizations[civIndex];
-  if (!civ) return false;
-  for (const tid of civ.researchedTechs) {
-    const u = TECHNOLOGIES[tid]?.unlocks;
-    if (u?.includes(imp)) return true;
-  }
-  return false;
-}
-
 /** Recompute territory and per-city worked tiles + yields after a tile change (e.g. worker improvement). */
 export function rebuildEconomyAfterTileChange(state: GameState): GameState {
   // This function affects global territory and worked tiles; clone all rows intentionally.
@@ -2414,79 +2420,10 @@ export function rebuildEconomyAfterTileChange(state: GameState): GameState {
   };
 }
 
-function workerImprovementValidationError(
-  state: GameState,
-  civIndex: number,
-  imp: ImprovementType,
-  q: number,
-  r: number
-): string | null {
-  if (imp === 'none') return 'invalid improvement';
-  const t = state.tiles[r]?.[q];
-  if (!t) return 'invalid tile';
-  const res = t.resource ? NATURAL_RESOURCES[t.resource] : null;
-  const strategicAutoUnlock =
-    !!res && res.type === 'strategic' && !!res.improvement && res.improvement === imp;
-  if (!civHasImprovementUnlock(state, civIndex, imp) && !strategicAutoUnlock) return 'missing technology';
-  if (t.city != null) return 'cannot build on a city';
-  if (t.owner !== civIndex) return 'tile not in your territory';
-  if (t.improvement === imp) return 'already built here';
-
-  switch (imp) {
-    case 'fishing_boats':
-      if (t.terrain !== 'ocean' && t.terrain !== 'coast') return 'needs coast or ocean';
-      if (t.resource !== 'fish') return 'needs fish resource';
-      break;
-    case 'farm':
-      if (t.terrain === 'ocean' || t.terrain === 'mountains') return 'bad terrain';
-      if (res && res.improvement !== 'farm') return 'wrong resource for farm';
-      break;
-    case 'mine':
-      if (t.terrain === 'ocean') return 'bad terrain';
-      if (res) {
-        if (res.improvement !== 'mine') return 'wrong resource for mine';
-      } else if (t.terrain !== 'hills' && t.terrain !== 'mountains') {
-        return 'mine needs hills or a mineral resource';
-      }
-      break;
-    case 'pasture':
-      if (t.terrain === 'ocean' || t.terrain === 'mountains') return 'bad terrain';
-      if (!res || res.improvement !== 'pasture') return 'needs pasture livestock or horses';
-      break;
-    case 'lumber_mill':
-      if (res && res.improvement === 'lumber_mill') break;
-      if (t.terrain !== 'forest' && t.terrain !== 'jungle') return 'needs forest or jungle';
-      break;
-    case 'trading_post':
-      if (t.terrain === 'ocean' || t.terrain === 'mountains') return 'bad terrain';
-      if (res) {
-        if (res.improvement !== 'trading_post') return 'wrong resource for trading post';
-      } else if (t.terrain !== 'desert' && t.terrain !== 'tundra' && t.terrain !== 'snow') {
-        return 'trading post needs desert, tundra, snow, or a trade resource';
-      }
-      break;
-    default:
-      return 'unknown improvement';
-  }
-  return null;
-}
-
 export function listValidWorkerImprovements(state: GameState, unitId: number): ImprovementType[] {
   const u = state.units.find(x => x.id === unitId);
   if (!u || u.type !== 'worker' || u.movement <= 0) return [];
-  const opts: Exclude<ImprovementType, 'none'>[] = [
-    'farm',
-    'mine',
-    'pasture',
-    'lumber_mill',
-    'fishing_boats',
-    'trading_post',
-  ];
-  const out: ImprovementType[] = [];
-  for (const imp of opts) {
-    if (!workerImprovementValidationError(state, u.owner, imp, u.q, u.r)) out.push(imp);
-  }
-  return out;
+  return listLegalWorkerImprovementsAt(state, u.owner, u.q, u.r);
 }
 
 export function buildImprovement(state: GameState, unitId: number, imp: ImprovementType): GameState {

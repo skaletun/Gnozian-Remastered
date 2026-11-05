@@ -242,3 +242,46 @@ describe('attackCity', () => {
     expect(after.messages.some(m => m.type === 'warning')).toBe(true);
   });
 });
+
+
+describe('siege and civilian combat legality', () => {
+  it('requires a living melee combatant to capture a city after bombardment', () => {
+    const ranged = makeWarrior(1, 0, 1, 1, {
+      type: 'archer', strength: 6, rangedStrength: 180, range: 2,
+    });
+    const city = makeCity(10, 1, 2, 1, { hp: 5, defense: 0 });
+    let s = makeBaseState([ranged], [city]);
+    s = declareWar(s, 0, 1);
+    const after = attackCity(s, 1, 10);
+    expect(after.cities.find(c => c.id === 10)?.owner).toBe(1);
+    expect(after.cities.find(c => c.id === 10)?.hp).toBe(1);
+    expect(after.civilizations[0]?.cities).not.toContain(10);
+    expect(after.civilizations[1]?.cities).toContain(10);
+    expect(after.units.find(u => u.id === 1)?.q).toBe(1);
+  });
+
+  it('does not give a destroyed melee attacker ownership of a city', () => {
+    const doomed = makeWarrior(1, 0, 1, 1, { strength: 200, hp: 1 });
+    const city = makeCity(10, 1, 2, 1, { hp: 5, defense: 0 });
+    let s = makeBaseState([doomed], [city]);
+    s = declareWar(s, 0, 1);
+    const after = attackCity(s, 1, 10);
+    expect(after.cities.find(c => c.id === 10)?.owner).toBe(1);
+    expect(after.cities.find(c => c.id === 10)?.hp).toBe(1);
+  });
+
+  it('prevents settlers from initiating city and unit combat', () => {
+    const civilian = makeWarrior(1, 0, 1, 1, {
+      type: 'settler', strength: 0, rangedStrength: 0, range: 0,
+    });
+    const city = makeCity(10, 1, 2, 1, { hp: 50, defense: 10 });
+    const enemy = makeWarrior(2, 1, 1, 2);
+    let s = makeBaseState([civilian, enemy], [city]);
+    s = declareWar(s, 0, 1);
+    const cityAttempt = attackCity(s, 1, 10);
+    expect(cityAttempt.cities.find(c => c.id === 10)?.hp).toBe(50);
+    const unitAttempt = combatUnit(s, 1, 2);
+    expect(unitAttempt.units.find(u => u.id === 2)?.hp).toBe(100);
+    expect(unitAttempt.messages.some(m => m.type === 'warning')).toBe(true);
+  });
+});
