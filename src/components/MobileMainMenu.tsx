@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { t, getLanguage } from '../i18n';
+import { GNOZIAN_RELEASE_VERSION } from '../game/releaseVersion';
 import { playUiClick } from '../audio/AudioManager';
 import { Gnz2DAsset } from './ui/Gnz2DAsset';
 import './mobile-menu.css';
@@ -91,7 +92,7 @@ export default function MobileMainMenu({
           'Open your browser menu and choose Install App or Add to Home Screen.'}</span>
         <button type="button" onClick={()=>setShowInstallHint(false)} aria-label={isRu?'Закрыть':'Close'}>✕</button>
       </div>}
-      <div className="rmm-identity">{isRu?'ПРАВИТЕЛЬ':'LEADER'} <strong>{playerNickname||'Gnozian'}</strong><span>✦</span> v7.0.0</div>
+      <div className="rmm-identity">{isRu?'ПРАВИТЕЛЬ':'LEADER'} <strong>{playerNickname||'Gnozian'}</strong><span>✦</span> v{GNOZIAN_RELEASE_VERSION}</div>
     </div>
     <footer className="rmm-footer"><span>GNOZIAN REMASTERED</span><span>{isRu?'ОДИНОЧНАЯ ИГРА ДОСТУПНА ОФЛАЙН':'SINGLE PLAYER AVAILABLE OFFLINE'}</span></footer>
   </main>;

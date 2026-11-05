@@ -4,6 +4,7 @@ import type { GameSettings, TerrainType } from '../game/types';
 import type { GnozianGlyphName } from './ui';
 import { CIV_TEMPLATES } from '../game/constants';
 import { t } from '../i18n';
+import { GNOZIAN_RELEASE_VERSION } from '../game/releaseVersion';
 import {
   civBonusSummaryLines,
   civTemplateAbility,
@@ -530,7 +531,7 @@ export default function MainMenu({
               </GnzButton>
             </div>
             <div className="gnz-subtle mt-auto border-t border-cyan-200/[0.12] pt-4 text-center text-[11px] leading-snug">
-              {t('menu.version')}
+              {t('menu.version')} · v{GNOZIAN_RELEASE_VERSION}
             </div>
           </GnzPanel>
         </div>
