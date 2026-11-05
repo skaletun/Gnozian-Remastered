@@ -1,0 +1,97 @@
+import { useEffect, useState } from 'react';
+import { t } from '../i18n';
+import { playUiClick } from '../audio/AudioManager';
+import './mobile-menu.css';
+
+type InstallEvent = Event & { prompt: () => Promise<void>; userChoice?: Promise<{outcome:string}> };
+type Props = {
+  hasSave: boolean;
+  playerNickname: string;
+  onNewGame: () => void;
+  onContinueGame: () => void;
+  onLoadGame: () => void;
+  onSettings?: () => void;
+  onAchievements?: () => void;
+  onMapEditor?: () => void;
+  onTutorial?: () => void;
+};
+
+export default function MobileMainMenu({
+  hasSave,playerNickname,onNewGame,onContinueGame,onLoadGame,
+  onSettings,onAchievements,onMapEditor,onTutorial,
+}:Props){
+  const [online,setOnline]=useState(()=>navigator.onLine);
+  const [prompt,setPrompt]=useState<InstallEvent|null>(null);
+  const [showInstallHint,setShowInstallHint]=useState(false);
+  const [installed,setInstalled]=useState(()=>window.matchMedia('(display-mode: standalone)').matches);
+  useEffect(()=>{
+    const update=()=>setOnline(navigator.onLine);
+    const install=(event:Event)=>{event.preventDefault();setPrompt(event as InstallEvent);};
+    const complete=()=>{setInstalled(true);setPrompt(null);};
+    window.addEventListener('online',update);window.addEventListener('offline',update);
+    window.addEventListener('beforeinstallprompt',install);window.addEventListener('appinstalled',complete);
+    return ()=>{
+      window.removeEventListener('online',update);window.removeEventListener('offline',update);
+      window.removeEventListener('beforeinstallprompt',install);window.removeEventListener('appinstalled',complete);
+    };
+  },[]);
+  const action=(callback?:()=>void)=>()=>{playUiClick();callback?.();};
+  const isRu=window.localStorage.getItem('gnozian_settings')?.includes('"language":"en"')!==true;
+  async function requestInstall(){
+    if(prompt){await prompt.prompt();setPrompt(null);}
+    else setShowInstallHint(true);
+  }
+  return <main className="rmm-root">
+    <div className="rmm-landscape" aria-hidden="true">
+      <div className="rmm-disc rmm-disc-outer"/>
+      <div className="rmm-disc rmm-disc-inner"/>
+      <div className="rmm-horizon"/>
+      <div className="rmm-spire rmm-spire-one"/>
+      <div className="rmm-spire rmm-spire-two"/>
+    </div>
+    <header className="rmm-top">
+      <div className="rmm-mark" aria-label="Gnozian logo">⬡</div>
+      <div className="rmm-toptext"><strong>GNOZIAN</strong><span>REMASTERED</span></div>
+      <div className="rmm-connection" aria-label={online?'Online':'Offline'}>
+        <span className={online?'rmm-dot rmm-dot-online':'rmm-dot'}/>
+        {online?'ONLINE':'OFFLINE'}
+      </div>
+    </header>
+    <div className="rmm-body">
+      <div className="rmm-overline">{isRu?'ЭПОХА ЦИВИЛИЗАЦИЙ':'RISE OF CIVILIZATIONS'}</div>
+      <h1>ТВОЯ ИСТОРИЯ.<span>ТВОЯ ИМПЕРИЯ.</span></h1>
+      <p className="rmm-lead">
+        {isRu?'Исследуй мир, строй города, веди дипломатию и перепиши историю.':
+          'Explore the world, build cities, master diplomacy, and rewrite history.'}
+      </p>
+      <div className="rmm-sigil" aria-hidden="true"><span>✦</span><span>⬡</span><span>✦</span></div>
+      <section className="rmm-primary" aria-label={isRu?'Начало игры':'Play'}>
+        {hasSave&&<button type="button" className="rmm-continue" onClick={action(onContinueGame)}>
+          <span className="rmm-button-symbol" aria-hidden="true">▶</span>
+          <span><strong>{t('menu.continueGame')}</strong><small>{isRu?'Вернуться к своей империи':'Return to your empire'}</small></span>
+          <span className="rmm-chevron">›</span>
+        </button>}
+        <button type="button" className="rmm-newgame" onClick={action(onNewGame)}>
+          <span className="rmm-button-symbol" aria-hidden="true">✦</span>
+          <span><strong>{t('menu.newGame')}</strong><small>{isRu?'Основать новую цивилизацию':'Found a new civilization'}</small></span>
+          <span className="rmm-chevron">›</span>
+        </button>
+      </section>
+      <div className="rmm-grid">
+        <button type="button" onClick={action(onLoadGame)}><span aria-hidden="true">◷</span>{t('menu.loadGame')}</button>
+        {onSettings&&<button type="button" onClick={action(onSettings)}><span aria-hidden="true">⚙</span>{t('menu.settings')}</button>}
+        {onAchievements&&<button type="button" onClick={action(onAchievements)}><span aria-hidden="true">🏆</span>{t('menu.achievements')}</button>}
+        {onTutorial&&<button type="button" onClick={action(onTutorial)}><span aria-hidden="true">⌑</span>{t('menu.tutorial')}</button>}
+        {onMapEditor&&<button type="button" onClick={action(onMapEditor)}><span aria-hidden="true">⬡</span>{t('menu.mapEditor')}</button>}
+        {!installed&&<button type="button" onClick={()=>void requestInstall()}><span aria-hidden="true">⇩</span>{isRu?'Установить':'Install PWA'}</button>}
+      </div>
+      {showInstallHint&&<div className="rmm-install-hint" role="status">
+        <span>{isRu?'Для установки открой меню браузера и выбери «Установить приложение» или «На экран Домой».':
+          'Open your browser menu and choose Install App or Add to Home Screen.'}</span>
+        <button type="button" onClick={()=>setShowInstallHint(false)} aria-label={isRu?'Закрыть':'Close'}>✕</button>
+      </div>}
+      <div className="rmm-identity">{isRu?'ПРАВИТЕЛЬ':'LEADER'} <strong>{playerNickname||'Gnozian'}</strong><span>✦</span> v7.0.0</div>
+    </div>
+    <footer className="rmm-footer"><span>GNOZIAN REMASTERED</span><span>{isRu?'ОДИНОЧНАЯ ИГРА ДОСТУПНА ОФЛАЙН':'SINGLE PLAYER AVAILABLE OFFLINE'}</span></footer>
+  </main>;
+}
