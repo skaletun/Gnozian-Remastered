@@ -1,0 +1,48 @@
+name: Visual QA — real artwork in mobile landscape
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/components/**'
+      - 'src/game/realArtAssets.test.ts'
+      - 'public/ui-art/**'
+      - 'scripts/visual-qa.mjs'
+      - '.github/workflows/visual-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screenshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Start production Vite preview
+        run: |
+          nohup npm run preview -- --host 127.0.0.1 --port 4173 --strictPort >/tmp/gnz-preview.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl --silent --fail http://127.0.0.1:4173/Gnozian-Remastered/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/gnz-preview.log
+          exit 1
+      - name: Inspect game in a real Chromium browser (844x390, touch and tablet)
+        run: node scripts/visual-qa.mjs
+      - name: Publish real viewport screenshots and QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gnozian-real-visual-proof
+          path: .visual-qa/
+          if-no-files-found: warn
+          retention-days: 14
