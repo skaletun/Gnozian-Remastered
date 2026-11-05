@@ -1702,10 +1702,9 @@ export default function App() {
           onMetaPolicyChange={handleMetaPolicyChange}
         />
         <AnimatePresence>
-          {showSettings && (
-            {mobileLayout
-              ? <MobileSettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
-              : <SettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />}
+          {showSettings && (mobileLayout
+            ? <MobileSettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
+            : <SettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
           )}
         </AnimatePresence>
         <AnimatePresence>
@@ -2028,10 +2027,9 @@ export default function App() {
 
       {/* Settings screen */}
       <AnimatePresence>
-          {showSettings && (
-            {mobileLayout
-              ? <MobileSettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
-              : <SettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />}
+          {showSettings && (mobileLayout
+            ? <MobileSettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
+            : <SettingsScreen onClose={() => setShowSettings(false)} onSave={applyAppSettings} />
           )}
       </AnimatePresence>
 
