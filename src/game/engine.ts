@@ -853,6 +853,9 @@ export function combatUnit(
   const defender = stateAfterWar.units.find(u => u.id === defenderId);
   if (!attacker || !defender) return stateAfterWar;
   if (attacker.hasAttacked) return stateAfterWar;
+  if (attacker.strength <= 0 && attacker.rangedStrength <= 0) {
+    return addMessage(stateAfterWar, 'Civilian units cannot attack.', 'warning', [attacker.owner]);
+  }
   const rp = relationPair(stateAfterWar.relations, attacker.owner, defender.owner);
   if (attacker.owner !== defender.owner && rp?.status !== 'war') {
     return addMessage(stateAfterWar, 'Cannot attack without war declaration.', 'warning', [attacker.owner]);
@@ -907,6 +910,9 @@ export function attackCity(
   const attacker = s.units.find(u => u.id === attackerId);
   const city = s.cities.find(c => c.id === cityId);
   if (!attacker || !city || attacker.hasAttacked) return s;
+  if (attacker.strength <= 0 && attacker.rangedStrength <= 0) {
+    return addMessage(s, 'Civilian units cannot attack cities.', 'warning', [attacker.owner]);
+  }
   const defenderOwnerSlot = city.owner;
   if (attacker.owner === city.owner) return s;
   const rel = relationPair(s.relations, attacker.owner, city.owner);
@@ -928,6 +934,10 @@ export function attackCity(
 
   const combat = computeCityCombat(s, attacker, city);
   const { newCityHp, newAtkHp } = combat;
+  // Ranged fire can reduce fortifications, but only a surviving melee
+  // combatant can occupy and capture the city (standard 4X siege rule).
+  const capturedByMelee = newCityHp <= 0 && attacker.rangedStrength <= 0 && attacker.strength > 0 && newAtkHp > 0;
+  const cityHpAfterAttack = capturedByMelee ? newCityHp : Math.max(1, newCityHp);
 
   const atkCiv = s.civilizations[attacker.owner];
   const defCiv = s.civilizations[city.owner];
@@ -940,7 +950,7 @@ export function attackCity(
   let newCivs = applied.civilizations;
   let newCities = s.cities.map(c => {
     if (c.id !== cityId) return c;
-    return { ...c, hp: newCityHp };
+    return { ...c, hp: cityHpAfterAttack };
   });
   // Clone only rows around city and attacker to limit allocations
   const rowsToClone = new Set<number>();
@@ -949,13 +959,15 @@ export function attackCity(
   const newTiles = cloneTileRows(s.tiles, rowsToClone);
   let msg = combat.msg;
   let cityWasCaptured = false;
-  // City captured
-  if (newCityHp <= 0) {
+  if (newCityHp <= 0 && !capturedByMelee) {
+    msg = `${atkWho} → ${city.name}: defenses reduced to 1 HP · a surviving melee unit must capture the city`;
+  }
+  // Ownership transfers only when the city can actually be occupied.
+  if (capturedByMelee) {
     cityWasCaptured = true;
     msg = `${defWho} captured by ${atkName} (${atkWho})`;
     const oldOwner = city.owner;
     const wasCapital = !!city.isCapital;
-    const isMelee = (attacker.rangedStrength ?? 0) === 0 && newAtkHp > 0;
     newCities = newCities.map(c => {
       if (c.id !== cityId) return c;
       return {
@@ -990,8 +1002,8 @@ export function attackCity(
       return civ;
     });
 
-    // Move melee attacker into the captured city
-    if (isMelee) {
+    // Move surviving melee attacker into the captured city.
+    {
       if (newTiles[attacker.r] && newTiles[attacker.r][attacker.q]) {
         if (newTiles[attacker.r][attacker.q].unit === attacker.id) {
           newTiles[attacker.r][attacker.q].unit = null;
