@@ -7,6 +7,7 @@ import {
 } from '../game/settingsConstants';
 import { loadSettings, saveSettingsToStorage } from '../game/settingsStorage';
 import { resolveRenderResolution } from '../game/renderResolution';
+import { Gnz2DAsset, type Gnz2DIconName } from './ui/Gnz2DAsset';
 import './mobile-settings.css';
 
 type Tab = 'display' | 'controls' | 'gameplay' | 'audio' | 'language';
@@ -140,23 +141,23 @@ export default function MobileSettingsScreen({ onClose, onSave, onLanguageChange
       else await document.documentElement.requestFullscreen();
     } catch { /* iOS Safari does not offer element fullscreen */ }
   }
-  const tabs: { key: Tab; icon: string; name: string }[] = [
-    { key:'display', icon:'◈', name:strings.display },
-    { key:'controls', icon:'◎', name:strings.controls },
-    { key:'gameplay', icon:'⌘', name:strings.gameplay },
-    { key:'audio', icon:'♫', name:strings.audio },
-    { key:'language', icon:'文', name:strings.language },
+  const tabs: { key: Tab; icon: Gnz2DIconName; name: string }[] = [
+    { key:'display', icon:'eye', name:strings.display },
+    { key:'controls', icon:'movement', name:strings.controls },
+    { key:'gameplay', icon:'settings', name:strings.gameplay },
+    { key:'audio', icon:'info', name:strings.audio },
+    { key:'language', icon:'world', name:strings.language },
   ];
   return <div className="rm-overlay" role="presentation">
     <section className="rm-panel" role="dialog" aria-modal="true" aria-labelledby="rm-settings-title">
       <header className="rm-header">
         <div><small>{strings.subtitle}</small><h1 id="rm-settings-title">{strings.title}</h1></div>
-        <button type="button" className="rm-close" onClick={onClose} aria-label={strings.close}>✕</button>
+        <button type="button" className="rm-close" onClick={onClose} aria-label={strings.close}><Gnz2DAsset name="close" className="h-6 w-6" /></button>
       </header>
       <nav className="rm-tabs" aria-label={strings.title}>{tabs.map(item =>
         <button type="button" key={item.key} className={tab===item.key?'rm-tab rm-tab-active':'rm-tab'}
           onClick={()=>setTab(item.key)} aria-current={tab===item.key?'page':undefined}>
-          <span aria-hidden="true">{item.icon}</span><span>{item.name}</span>
+          <Gnz2DAsset name={item.icon} className="rm-tab-icon h-6 w-6" /><span>{item.name}</span>
         </button>
       )}</nav>
       <div className="rm-scroll" key={tab}>

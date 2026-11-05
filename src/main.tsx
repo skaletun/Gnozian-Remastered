@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import './index.css';
+import './components/ui/remaster2d.css';
 import './crashAssistantRenderer';
 import App from './App';
 createRoot(document.getElementById('root')!).render(<App />);

@@ -11,7 +11,7 @@ export function GnzPanel({
   return (
     <div
       className={twMerge(
-        'gnz-panel relative rounded-2xl border border-cyan-200/[0.14] ring-1 ring-amber-400/[0.16]',
+        'gnz-panel gnz-2d-panel relative rounded-2xl border border-cyan-200/[0.14] ring-1 ring-amber-400/[0.16]',
         className
       )}
       {...rest}

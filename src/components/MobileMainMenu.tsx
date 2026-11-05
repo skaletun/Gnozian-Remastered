@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { t, getLanguage } from '../i18n';
 import { playUiClick } from '../audio/AudioManager';
+import { Gnz2DAsset } from './ui/Gnz2DAsset';
 import './mobile-menu.css';
 
 type InstallEvent = Event & { prompt: () => Promise<void>; userChoice?: Promise<{outcome:string}> };
@@ -50,7 +51,7 @@ export default function MobileMainMenu({
       <div className="rmm-spire rmm-spire-two"/>
     </div>
     <header className="rmm-top">
-      <div className="rmm-mark" aria-label="Gnozian logo">⬡</div>
+      <div className="rmm-mark" aria-label="Gnozian logo"><Gnz2DAsset name="empire" className="rmm-mark-asset" /></div>
       <div className="rmm-toptext"><strong>GNOZIAN</strong><span>REMASTERED</span></div>
       <div className="rmm-connection" aria-label={online?'Online':'Offline'}>
         <span className={online?'rmm-dot rmm-dot-online':'rmm-dot'}/>
@@ -67,23 +68,23 @@ export default function MobileMainMenu({
       <div className="rmm-sigil" aria-hidden="true"><span>✦</span><span>⬡</span><span>✦</span></div>
       <section className="rmm-primary" aria-label={isRu?'Начало игры':'Play'}>
         {hasSave&&<button type="button" className="rmm-continue" onClick={action(onContinueGame)}>
-          <span className="rmm-button-symbol" aria-hidden="true">▶</span>
+          <span className="rmm-button-symbol" aria-hidden="true"><Gnz2DAsset name="continue" className="rmm-icon" /></span>
           <span><strong>{t('menu.continueGame')}</strong><small>{isRu?'Вернуться к своей империи':'Return to your empire'}</small></span>
           <span className="rmm-chevron">›</span>
         </button>}
         <button type="button" className="rmm-newgame" onClick={action(onNewGame)}>
-          <span className="rmm-button-symbol" aria-hidden="true">✦</span>
+          <span className="rmm-button-symbol" aria-hidden="true"><Gnz2DAsset name="play" className="rmm-icon" /></span>
           <span><strong>{t('menu.newGame')}</strong><small>{isRu?'Основать новую цивилизацию':'Found a new civilization'}</small></span>
           <span className="rmm-chevron">›</span>
         </button>
       </section>
       <div className="rmm-grid">
-        <button type="button" onClick={action(onLoadGame)}><span aria-hidden="true">◷</span>{t('menu.loadGame')}</button>
-        {onSettings&&<button type="button" onClick={action(onSettings)}><span aria-hidden="true">⚙</span>{t('menu.settings')}</button>}
-        {onAchievements&&<button type="button" onClick={action(onAchievements)}><span aria-hidden="true">🏆</span>{t('menu.achievements')}</button>}
-        {onTutorial&&<button type="button" onClick={action(onTutorial)}><span aria-hidden="true">⌑</span>{t('menu.tutorial')}</button>}
-        {onMapEditor&&<button type="button" onClick={action(onMapEditor)}><span aria-hidden="true">⬡</span>{t('menu.mapEditor')}</button>}
-        {!installed&&<button type="button" onClick={()=>void requestInstall()}><span aria-hidden="true">⇩</span>{isRu?'Установить':'Install PWA'}</button>}
+        <button type="button" onClick={action(onLoadGame)}><Gnz2DAsset name="save" className="rmm-icon" />{t('menu.loadGame')}</button>
+        {onSettings&&<button type="button" onClick={action(onSettings)}><Gnz2DAsset name="settings" className="rmm-icon" />{t('menu.settings')}</button>}
+        {onAchievements&&<button type="button" onClick={action(onAchievements)}><Gnz2DAsset name="trophy" className="rmm-icon" />{t('menu.achievements')}</button>}
+        {onTutorial&&<button type="button" onClick={action(onTutorial)}><Gnz2DAsset name="book" className="rmm-icon" />{t('menu.tutorial')}</button>}
+        {onMapEditor&&<button type="button" onClick={action(onMapEditor)}><Gnz2DAsset name="map" className="rmm-icon" />{t('menu.mapEditor')}</button>}
+        {!installed&&<button type="button" onClick={()=>void requestInstall()}><Gnz2DAsset name="download" className="rmm-icon" />{isRu?'Установить':'Install PWA'}</button>}
       </div>
       {showInstallHint&&<div className="rmm-install-hint" role="status">
         <span>{isRu?'Для установки открой меню браузера и выбери «Установить приложение» или «На экран Домой».':
