@@ -87,10 +87,10 @@ class BabylonGnozianMap {
     this.assets=new GnozianAssetWorld(this.scene,()=>this.camera.target,()=>{
       if(this.destroyed||this.refreshQueued)return;
       this.refreshQueued=true;
-      queueMicrotask(()=>{
+      window.setTimeout(()=>{
         this.refreshQueued=false;
         if(!this.destroyed&&this.lastState)this.setState(this.lastState,this.lastViewer,this.lastGraphics);
-      });
+      },100);
     });
     this.camera.useBouncingBehavior=false;
     this.camera.useAutoRotationBehavior=false;
@@ -246,10 +246,14 @@ class BabylonGnozianMap {
       }
     }
     for(const unit of state.units){
-      if(this.assets?.has('unit:'+unit.id))continue;
       const tile=tileByKey.get(unit.q+','+unit.r);
       if(!tile||!this.visible(tile,viewer))continue;
       const p=tileWorld(unit.q,unit.r);
+      if(this.assets?.has('unit:'+unit.id)){
+        const team=state.civilizations[unit.owner]?.color;
+        if(isValidHex(team??''))add('torus',team!,p.add(new Vector3(0,.22,0)),new Vector3(.67,.4,.67),{q:unit.q,r:unit.r});
+        continue;
+      }
       const color=state.civilizations[unit.owner]?.color;
       const ownerColor=isValidHex(color??'')?color!:'#d8c69a';
       const water=tile.terrain==='ocean'||tile.terrain==='coast';
