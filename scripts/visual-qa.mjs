@@ -4,7 +4,7 @@ import path from 'node:path';
 
 const root = path.resolve('visual-qa');
 await mkdir(root,{recursive:true});
-const report={screens:[],assets:[],layout:{},errors:[],requests:[]};
+const report={screens:[],assets:[],layout:{},errors:[],requests:[],console:[],scripts:[]};
 const browser=await chromium.launch({
   headless:true,
   args:['--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']
@@ -16,9 +16,12 @@ const context=await browser.newContext({
 });
 const page=await context.newPage();
 page.on('pageerror',error=>report.errors.push(String(error)));
+page.on('console',message=>{ if(['error','warning'].includes(message.type())) report.console.push(message.type()+': '+message.text()); });
+page.on('requestfailed',request=>{report.requests.push('FAILED '+request.url()+' '+request.failure()?.errorText);});
+page.on('crash',()=>report.errors.push('PAGE_CRASH'));
 page.on('response',response=>{
-  if(response.status()>=400 && /(?:ui-art|ui-2d)/.test(response.url()))
-    report.requests.push(response.status()+' '+response.url());
+  if(response.status()>=400) report.requests.push(response.status()+' '+response.url());
+  if(response.request().resourceType()==='script') report.scripts.push({url:response.url(),status:response.status(),mime:response.headers()['content-type']});
 });
 
 const shot=async(name,includePreview=false)=>{
@@ -47,9 +50,24 @@ async function clickVisible(locator,name){
 }
 async function main(){
   await page.goto(origin,{waitUntil:'domcontentloaded',timeout:40000});
-  // A first-ever visit intentionally opens the player profile setup before the menu.
-  // Test the real onboarding flow rather than assuming an existing localStorage save.
-  await page.locator('.rmm-root, input[maxlength="32"]').first().waitFor({timeout:40000});
+  // Initial route is splash, then first-run profile or menu.
+  // Always dump the document and JS network state on an unexpected blank screen.
+  try {
+    await page.locator('.rmm-root, input[maxlength="32"]').first().waitFor({timeout:22000});
+  } catch (error) {
+    const diagnostic=await page.evaluate(()=>({
+      url:location.href,
+      documentReady:document.readyState,
+      body:document.body?.innerText.slice(0,1600),
+      rootHTML:document.getElementById('root')?.innerHTML.slice(0,1600),
+      scripts:Array.from(document.scripts).map(s=>({src:s.src,type:s.type})),
+      styles:Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(s=>s.href),
+      width:innerWidth,height:innerHeight,orientation:screen.orientation?.type,
+    }));
+    console.error('QA_BOOT_DIAGNOSTIC '+JSON.stringify({diagnostic,report}));
+    await shot('00-app-entry-error',true);
+    throw error;
+  }
   if(await page.locator('input[maxlength="32"]').count()){
     await shot('00-first-run-profile');
     await page.locator('input[maxlength="32"]').fill('QA Remaster');
