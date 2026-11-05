@@ -4,7 +4,7 @@ import {
   type AnimationGroup, type InstantiatedEntries,
 } from '@babylonjs/core';
 import '@babylonjs/loaders/glTF';
-import type { GameState, Tile, Unit, City } from '../../game/types';
+import type { GameState, Tile, Unit } from '../../game/types';
 import { hexWorldPosition } from '../../game/hexGeometry';
 import { CIV_TEMPLATES } from '../../game/constants';
 
