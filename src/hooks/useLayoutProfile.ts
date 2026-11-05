@@ -5,6 +5,10 @@ export interface LayoutDimensions { width: number; height: number; touch: boolea
 
 /** Landscape phones must use the phone HUD even when width exceeds 820 px. */
 export function resolveLayoutProfile({ width, height, touch }: LayoutDimensions): LayoutProfile {
+  // Landscape phones and touch tablets share the remastered touch HUD.
+  // The previous 1024px cut-off classified many tablets as "tablet",
+  // silently bringing back the oversized desktop overlays on touchscreens.
+  if (touch && width > height && width <= 1600) return 'mobile';
   if (width > height && height <= 600 && width <= 1100) return 'mobile';
   if (width <= 820 || (touch && width <= 1024)) return 'mobile';
   if (width <= 1220 || touch) return 'tablet';
