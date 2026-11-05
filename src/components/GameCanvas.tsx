@@ -4,7 +4,7 @@ import {
   Matrix, Mesh, MeshBuilder, PointerEventTypes, Quaternion, Scene,
   StandardMaterial, Vector3
 } from '@babylonjs/core';
-import type { GameState, TerrainType, Tile, Unit } from '../game/types';
+import type { GameState, TerrainType, Tile } from '../game/types';
 import type { GraphicsSettings } from '../game/settingsConstants';
 import type { CameraState } from '../game/hexMetrics';
 
