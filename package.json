@@ -11,9 +11,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "verify": "npm run typecheck && npm test && npm run build",
-    "prebuild": "node scripts/generate2dAssets.mjs",
-    "predev": "node scripts/generate2dAssets.mjs",
-    "pretest": "node scripts/generate2dAssets.mjs"
+    "prebuild": "node scripts/generate2dAssets.mjs && node scripts/materialize3d.mjs",
+    "predev": "node scripts/generate2dAssets.mjs && node scripts/materialize3d.mjs",
+    "pretest": "node scripts/generate2dAssets.mjs",
+    "assets:3d": "node scripts/materialize3d.mjs",
+    "assets:3d:check": "node scripts/materialize3d.mjs --verify"
   },
   "dependencies": {
     "clsx": "2.1.1",
