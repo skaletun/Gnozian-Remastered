@@ -154,3 +154,12 @@
   .gnz-achievements-footer button{min-height:40px;}
   .gnz-achievements-list{padding:9px;}
 }
+
+
+/* Actual independently generated SVG artwork for button states. Each UI state
+   has its own URL and the button keeps live localised labels and hit targets.
+   Background-size scales the vector without resampling or stretching text. */
+.gnz-2d-button{background-image:var(--gnz2d-bg-normal);background-size:100% 100%;background-repeat:no-repeat;background-position:center;}
+.gnz-2d-button:hover:not(:disabled){background-image:var(--gnz2d-bg-hover);}
+.gnz-2d-button:active:not(:disabled){background-image:var(--gnz2d-bg-pressed);}
+.gnz-2d-button:disabled{background-image:var(--gnz2d-bg-disabled);}
