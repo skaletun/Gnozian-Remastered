@@ -2,7 +2,6 @@ import type { City, GameState, Unit } from './types';
 import { hexDistance } from './mapgen';
 import { canAttackAtHexDistance } from './movementRules';
 import {
-  nearestEnemyCombatUnit,
   warOpponentIds,
 } from './aiMetrics';
 import type { AIPersonality, AIStrategicPosture } from './aiStrategy';
@@ -91,16 +90,16 @@ export function chooseCombatObjective(
     }
   }
 
+  const attackUnit = bestAttackableEnemyUnit(state, civIndex, unit, wars);
+  if (attackUnit) {
+    return { kind: 'attack-unit', unitId: attackUnit.id, targetQ: attackUnit.q, targetR: attackUnit.r };
+  }
+
   if (posture.threatLevel > 0.48 && posture.defensiveCityId != null && healthRatio > 0.42) {
     const station = nearestDefensiveStation(state, civIndex, unit, posture);
     if (station && hexDistance(unit.q, unit.r, station.q, station.r) > 2) {
       return { kind: 'move', targetQ: station.q, targetR: station.r, reason: 'defend' };
     }
-  }
-
-  const attackUnit = bestAttackableEnemyUnit(state, civIndex, unit, wars);
-  if (attackUnit) {
-    return { kind: 'attack-unit', unitId: attackUnit.id, targetQ: attackUnit.q, targetR: attackUnit.r };
   }
 
   const targetCity = bestWarTargetCity(state, civIndex, unit, posture);
@@ -111,8 +110,10 @@ export function chooseCombatObjective(
     }
   }
 
-  const knownEnemy = nearestEnemyCombatUnit(state, civIndex, unit.q, unit.r);
-  if (knownEnemy && wars.includes(knownEnemy.owner)) {
+  const knownEnemy = state.units
+    .filter(enemy => wars.includes(enemy.owner) && (enemy.strength > 0 || enemy.rangedStrength > 0))
+    .sort((a, b) => hexDistance(unit.q, unit.r, a.q, a.r) - hexDistance(unit.q, unit.r, b.q, b.r))[0];
+  if (knownEnemy) {
     return { kind: 'move', targetQ: knownEnemy.q, targetR: knownEnemy.r, reason: 'front' };
   }
 
@@ -127,8 +128,8 @@ export function chooseCombatObjective(
     }
   }
 
-  if (personality.aggressiveness > 65 && posture.victoryFocus === 'military' && rng() < 0.12 + posture.skill * 0.08) {
-    const knownForeign = state.cities.filter(city => city.owner !== civIndex);
+  if (posture.atWar && personality.aggressiveness > 65 && posture.victoryFocus === 'military' && rng() < 0.12 + posture.skill * 0.08) {
+    const knownForeign = state.cities.filter(city => wars.includes(city.owner));
     if (knownForeign.length > 0) {
       const target = knownForeign.reduce((best, city) =>
         hexDistance(unit.q, unit.r, best.q, best.r) <= hexDistance(unit.q, unit.r, city.q, city.r) ? best : city

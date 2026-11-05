@@ -43,6 +43,7 @@ import {
 import { canAddMoreTradeRoutes, buildTradePlan, shouldDeclareWar } from './aiDiplomacyPlanner';
 import { chooseProductionItem } from './aiEconomyPlanner';
 import { chooseCombatObjective } from './aiMilitaryPlanner';
+import { chooseScoutExplorationStep } from './aiScoutPlanner';
 import { chooseSettlerObjective } from './aiExpansionPlanner';
 import { chooseWorkerObjective } from './aiWorkerPlanner';
 import { moveAiUnitToward } from './aiUnitMovement';
@@ -375,6 +376,21 @@ function aiUnitProcessingOrderRank(t: UnitType): number {
   return 10;
 }
 
+function runScoutExploration(s: GameState, civIndex: number, scoutId: number, api: AIEngineAPI): GameState {
+  let current = s;
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const scout = current.units.find(u => u.id === scoutId);
+    if (!scout || scout.movement <= 0 || scout.hasAttacked) break;
+    const step = chooseScoutExplorationStep(current, civIndex, scout, api);
+    if (!step) break;
+    const next = moveAiUnitToward(current, scoutId, step, api);
+    const after = next.units.find(u => u.id === scoutId);
+    current = next;
+    if (!after || (after.q === scout.q && after.r === scout.r)) break;
+  }
+  return current;
+}
+
 function runCombatMovesUntilIdle(
   s: GameState,
   civIndex: number,
@@ -547,6 +563,11 @@ export function runAITurn(state: GameState, civIndex: number, api: AIEngineAPI, 
 
     if (isGreatPersonUnit(u.type)) {
       s = runGreatPerson(s, civIndex, u, aiApi, posture);
+      continue;
+    }
+
+    if (u.type === 'scout' && !posture.atWar) {
+      s = runScoutExploration(s, civIndex, u.id, aiApi);
       continue;
     }
 
