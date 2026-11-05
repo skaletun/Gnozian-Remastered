@@ -22,3 +22,24 @@
   .rm-toggle,.rm-range,.rm-choices,.rm-row-action{padding:11px}
   .rm-footer{padding:4px 12px}.rm-done{min-height:36px}
 }
+
+
+.rm-pixel-density{
+  margin:-6px 0 0;
+  padding:10px 14px;
+  border:1px solid rgba(220,191,131,.38);
+  border-radius:12px;
+  background:rgba(6,24,33,.9);
+  color:#d9e6e9;
+  font-size:13px;
+  line-height:1.4;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:5px;
+}
+.rm-pixel-density strong{color:#ffdb91;font-variant-numeric:tabular-nums;font-size:16px}
+.rm-pixel-density small{color:#a0bbc1;font-size:12px}
+@media (max-height:480px) and (orientation:landscape){
+  .rm-pixel-density{padding:7px 10px}
+}
