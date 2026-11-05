@@ -7,20 +7,19 @@ import {
 import type { GameState, TerrainType, Tile } from '../game/types';
 import type { GraphicsSettings } from '../game/settingsConstants';
 import { resolveRenderResolution } from '../game/renderResolution';
-import type { CameraState } from '../game/hexMetrics';
-import { hexWorldPosition } from '../game/hexGeometry';
+import { hexWorldPosition, worldPointToAxial, type WorldCameraView } from '../game/hexGeometry';
 
 interface Props {
   gameState: GameState;
-  liveCamera?: CameraState;
   onTileClick: (q:number,r:number,mods?:{altKey?:boolean;shiftKey?:boolean})=>void;
   onClearSelection?: ()=>void;
-  onCameraChange: (camera:CameraState)=>void;
   graphics?: GraphicsSettings;
   cameraControls?: {sensitivity:number;sensitivityX:number;sensitivityY:number;zoomSensitivity:number;invertX:boolean;invertY:boolean};
   onViewportSize?: (w:number,h:number)=>void;
   localViewerCivIndex?:number;
   interactionTick?:number;
+  onWorldCameraChange?: (camera:WorldCameraView)=>void;
+  focusHex?: {q:number;r:number;requestId:number}|null;
 }
 
 const TERRAIN_COLORS:Record<TerrainType,string>={
@@ -58,7 +57,11 @@ class BabylonGnozianMap {
   private onViewportSize?:(w:number,h:number)=>void;
   private destroyed=false;
   private graphicsPreferences:GraphicsSettings|undefined;
-  constructor(canvas:HTMLCanvasElement,pick:Props['onTileClick'],onViewportSize?:Props['onViewportSize']) {
+  private reportCameraChange?: (camera:WorldCameraView)=>void;
+  private latestView:WorldCameraView|null=null;
+  private lastReportAt=0;
+  constructor(canvas:HTMLCanvasElement,pick:Props['onTileClick'],onViewportSize?:Props['onViewportSize'],reportCameraChange?:Props['onWorldCameraChange']) {
+    this.reportCameraChange=reportCameraChange;
     this.onPick=pick;
     this.onViewportSize=onViewportSize;
     this.engine=new Engine(canvas,true,{stencil:false,preserveDrawingBuffer:false,powerPreference:'high-performance'});
@@ -96,8 +99,33 @@ class BabylonGnozianMap {
       if(tile)this.onPick(tile.q,tile.r,{altKey:ev.altKey,shiftKey:ev.shiftKey});
     });
     canvas.addEventListener('contextmenu',event=>event.preventDefault());
-    this.engine.runRenderLoop(()=>{if(!this.destroyed&&!document.hidden)this.scene.render();});
+    this.engine.runRenderLoop(()=>{
+      if(this.destroyed||document.hidden)return;
+      this.scene.render();
+      const now=performance.now();
+      if(now-this.lastReportAt>120){
+        this.lastReportAt=now;
+        this.publishWorldCamera();
+      }
+    });
     this.resize();
+  }
+  private publishWorldCamera(force=false):void {
+    if(this.initialCamera||!this.reportCameraChange)return;
+    const target=this.camera.getTarget();
+    const {q,r}=worldPointToAxial(target.x,target.z);
+    const radius=this.camera.radius;
+    if(!Number.isFinite(q)||!Number.isFinite(r)||!Number.isFinite(radius))return;
+    const old=this.latestView;
+    if(!force&&old&&Math.abs(old.q-q)<0.025&&Math.abs(old.r-r)<0.025&&Math.abs(old.radius-radius)<0.06)return;
+    const view={q,r,radius};
+    this.latestView=view;
+    this.reportCameraChange(view);
+  }
+  focusHex(q:number,r:number):void {
+    if(this.destroyed||!Number.isFinite(q)||!Number.isFinite(r))return;
+    this.camera.setTarget(tileWorld(q,r));
+    this.publishWorldCamera(true);
   }
   private mat(color:string):StandardMaterial {
     const key=isValidHex(color)?color:'#8d8d8d';
@@ -253,6 +281,7 @@ class BabylonGnozianMap {
       if(first)this.camera.setTarget(tileWorld(first.q,first.r));
       this.camera.radius=state.tiles.length>60?29:22;
       this.initialCamera=false;
+      this.publishWorldCamera(true);
     }
   }
   applyPreferences(graphics?:GraphicsSettings,controls?:Props['cameraControls']):void{
@@ -311,11 +340,13 @@ export default function GameCanvas(props:Props){
   onPick.current=props.onTileClick;
   const onViewport=useRef(props.onViewportSize);
   onViewport.current=props.onViewportSize;
+  const onWorldCam=useRef(props.onWorldCameraChange);
+  onWorldCam.current=props.onWorldCameraChange;
   const viewer=props.localViewerCivIndex??0;
   useEffect(()=>{
     const canvas=canvasRef.current;
     if(!canvas)return;
-    const r=new BabylonGnozianMap(canvas,(q,r,mods)=>onPick.current(q,r,mods),(w,h)=>onViewport.current?.(w,h));
+    const r=new BabylonGnozianMap(canvas,(q,r,mods)=>onPick.current(q,r,mods),(w,h)=>onViewport.current?.(w,h),cam=>onWorldCam.current?.(cam));
     renderer.current=r;
     const observer=new ResizeObserver(()=>r.resize());observer.observe(canvas);
     const windowResize=()=>r.resize();
@@ -334,6 +365,10 @@ export default function GameCanvas(props:Props){
   useEffect(()=>{
     renderer.current?.setState(props.gameState,viewer,props.graphics);
   },[props.gameState,viewer,props.graphics,props.interactionTick]);
+  useEffect(()=>{
+    const target=props.focusHex;
+    if(target)renderer.current?.focusHex(target.q,target.r);
+  },[props.focusHex?.requestId]);
   const onWheel=useCallback((event:React.WheelEvent<HTMLCanvasElement>)=>{
     // Babylon ArcRotateCamera handles wheel and pinch zoom natively.
     event.stopPropagation();
