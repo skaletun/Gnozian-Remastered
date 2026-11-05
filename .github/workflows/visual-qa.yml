@@ -42,6 +42,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gnozian-real-visual-proof
-          path: .visual-qa/
+          path: visual-qa/
           if-no-files-found: warn
           retention-days: 14

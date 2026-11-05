@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const root = path.resolve('.visual-qa');
+const root = path.resolve('visual-qa');
 await mkdir(root,{recursive:true});
 const report={screens:[],assets:[],layout:{},errors:[],requests:[]};
 const browser=await chromium.launch({
@@ -47,7 +47,21 @@ async function clickVisible(locator,name){
 }
 async function main(){
   await page.goto(origin,{waitUntil:'domcontentloaded',timeout:40000});
-  await page.locator('.rmm-root').waitFor({timeout:40000});
+  try {
+    await page.locator('.rmm-root').waitFor({timeout:14000});
+  } catch (error) {
+    const diagnostic=await page.evaluate(()=>({
+      url:location.href,
+      title:document.title,
+      body:document.body?.innerText.slice(0,1800),
+      rootHTML:document.getElementById('root')?.innerHTML.slice(0,1700),
+      width:innerWidth,height:innerHeight,
+      touch:navigator.maxTouchPoints,portrait:matchMedia('(orientation: portrait)').matches,
+    }));
+    console.error('QA_ENTRY_DIAGNOSTIC '+JSON.stringify({diagnostic,errors:report.errors,requests:report.requests}));
+    await shot('00-entry-failure',true);
+    throw error;
+  }
   await noHorizontalOverflow('mobile-menu');
   const initial=await page.locator('img[src*="/ui-2d/"]').count();
   if(initial<5)throw new Error('Mobile menu is missing generated SVGs: '+initial);
