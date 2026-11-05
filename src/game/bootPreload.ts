@@ -57,22 +57,17 @@ const GAME_PHASES: Array<{ key: string; run: () => Promise<unknown> }> = [
   },
   {
     key: 'boot.phase.gameCore',
-    run: () =>
-      Promise.all([import('./canvasGlyphDraw'), import('./featureSystems'), import('./mapRenderer')]),
+    run: () => Promise.all([
+      import('./featureSystems'),
+      import('./movementRules'),
+      import('./systems/turnStateCore'),
+    ]),
   },
   {
+    // The map is actually rendered by Babylon.js. Preload the active component,
+    // not abandoned Canvas2D and fake Renderer3D compatibility paths.
     key: 'boot.phase.visual',
-    run: () =>
-      Promise.all([
-        import('./visualRemasterRenderer'),
-        import('./visualFxPipeline'),
-        import('./unitVisualState'),
-      ]),
-  },
-  {
-    key: 'boot.phase.vector',
-    run: () =>
-      Promise.all([import('./vectorAssetCatalog'), import('./vectorUnitModels'), import('./vectorBuildingModels')]),
+    run: () => import('../components/GameCanvas'),
   },
   {
     key: 'boot.phase.pathfinding',
