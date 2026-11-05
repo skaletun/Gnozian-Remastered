@@ -3,7 +3,7 @@ import type { GameSettings, GameState } from '../game/types';
 import { CIV_TEMPLATES } from '../game/constants';
 import { initGame } from '../game/engine';
 import { initGameFromCustomMap } from '../game/engine';
-import { t } from '../i18n';
+import { getLanguage, t } from '../i18n';
 import { civJoinOptionLabel } from '../i18n/civTemplateI18n';
 import { playUiClick } from '../audio/AudioManager';
 import { GnzButton, GnzPanel, GnozianDivider, GnozianGlyph, GnzNavRailBtn } from './ui';
@@ -821,7 +821,7 @@ export default function MultiplayerScreen({ onBack, playerNickname, onGameStarte
               </GnzButton>
             </div>
             <p className={`gnz-subtle leading-snug ${compact ? 'text-[9px]' : 'text-[10px] sm:text-xs'}`}>
-              {t('menu.version')} · {GNOZIAN_GAME_VERSION}
+              {t('menu.version')} · {getLanguage() === 'ru' ? 'Протокол' : 'Protocol'} v{GNOZIAN_GAME_VERSION}
             </p>
           </div>
 
