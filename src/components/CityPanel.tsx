@@ -276,20 +276,25 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 gnz-modal-backdrop flex items-center justify-center overflow-y-auto p-4"
+      className={mobile
+        ? 'fixed inset-0 z-[90] gnz-modal-backdrop flex items-stretch justify-end overflow-hidden p-0'
+        : 'fixed inset-0 z-[90] gnz-modal-backdrop flex items-center justify-center overflow-y-auto p-4'}
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
+        initial={mobile ? { opacity: 0, x: 22 } : { scale: 0.9, y: 20 }}
+        animate={mobile ? { opacity: 1, x: 0 } : { scale: 1, y: 0 }}
+        exit={mobile ? { opacity: 0, x: 22 } : { scale: 0.9, y: 20 }}
         transition={{ type: 'spring', damping: 22, stiffness: 250 }}
-        className={`relative flex h-full w-full flex-col overflow-hidden border border-amber-900/40 bg-gradient-to-b from-stone-950 via-[#0c1014] to-black shadow-2xl ${
-          'max-h-[90vh] max-w-2xl rounded-2xl'
-        }`}
+        className={mobile
+          ? 'gnz-mobile-city-sheet relative flex h-full w-[min(520px,80vw)] flex-col overflow-hidden shadow-2xl'
+          : 'relative flex h-full w-full max-h-[90vh] max-w-2xl flex-col overflow-hidden rounded-2xl border border-amber-900/40 bg-gradient-to-b from-stone-950 via-[#0c1014] to-black shadow-2xl'}
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gnz-city-title"
       >
-        <GnozianPanelCorners inset={5} size={32} />
+        <GnozianPanelCorners inset={mobile ? 3 : 5} size={mobile ? 16 : 32} />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">
         {/* Header */}
         <div className={`flex items-center justify-between border-b border-amber-900/35 bg-gradient-to-r from-stone-900/90 to-stone-950/95 ${mobile ? 'p-3' : 'p-5'}`}>
@@ -298,7 +303,7 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
               <GnozianGlyph name={city.isCapital ? 'crown' : 'city'} size={32} />
             </span>
             <div>
-              <h2 className={`${mobile ? 'text-lg' : 'text-xl'} font-bold text-stone-50`}>{city.name}</h2>
+              <h2 id="gnz-city-title" className={`${mobile ? 'text-base' : 'text-xl'} font-bold text-stone-50`}>{city.name}</h2>
               <p className="text-sm text-stone-400/95">
                 {t('city.headerSubtitle', { pop: city.population, turn: city.turnFounded })}
               </p>
@@ -308,12 +313,14 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="px-3 py-1 text-xl text-stone-400 transition-colors hover:text-amber-100"
+            type="button"
+            aria-label={t('modal.close')}
+            className="gnz-city-close grid min-h-10 min-w-10 place-items-center rounded-lg border border-amber-700/50 bg-slate-900/70 text-xl text-stone-200 transition-colors hover:bg-slate-700"
           >✕</motion.button>
         </div>
 
         {/* Yields bar */}
-        <div className={`flex flex-wrap gap-2 border-b border-amber-900/25 bg-stone-950/60 ${mobile ? 'px-3 py-2' : 'px-5 py-3'}`}>
+        <div className={`gnz-city-yields flex gap-2 border-b border-amber-900/25 bg-stone-950/60 ${mobile ? 'px-2 py-1' : 'flex-wrap px-5 py-3'}`}>
           {YIELD_ORDER.map(res => {
             const val = city.yields[res];
             if (!val) return null;
@@ -322,7 +329,7 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
                 key={res}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-1.5 rounded-lg border border-amber-900/30 bg-stone-900/50 px-3 py-1.5"
+                className="gnz-city-yield flex items-center gap-1.5 rounded-lg border border-amber-900/30 bg-stone-900/50 px-3 py-1.5"
               >
                 <GnozianGlyph name={YIELD_GLYPH[res]} size={14} className="text-stone-300/90" />
                 <span className="text-xs font-bold" style={{ color: RESOURCE_COLORS[res] }}>
@@ -343,7 +350,7 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-amber-900/30 bg-stone-950/40">
+        <div className="gnz-city-tabs flex border-b border-amber-900/30 bg-stone-950/40">
           {(canManage ? (['overview', 'production', 'buildings'] as Tab[]) : (['overview'] as Tab[])).map(tb => (
             <button
               key={tb}
@@ -367,7 +374,7 @@ export default function CityPanel({ city, gameState, viewerCivIndex, onClose, on
         </div>
 
         {/* Content */}
-        <div className={`min-h-0 flex-1 overflow-y-auto ${mobile ? 'p-3' : 'p-5'}`}>
+        <div className={`gnz-city-content min-h-0 flex-1 overflow-y-auto ${mobile ? 'p-2' : 'p-5'}`}>
           <AnimatePresence mode="wait">
             {tab === 'overview' && (
               <motion.div

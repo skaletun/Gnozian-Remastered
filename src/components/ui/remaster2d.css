@@ -163,3 +163,38 @@
 .gnz-2d-button:hover:not(:disabled){background-image:var(--gnz2d-bg-hover);}
 .gnz-2d-button:active:not(:disabled){background-image:var(--gnz2d-bg-pressed);}
 .gnz-2d-button:disabled{background-image:var(--gnz2d-bg-disabled);}
+
+
+/* New mobile city inspector is a side sheet rather than a map-blocking modal. */
+.gnz-mobile-city-sheet{
+  height:100dvh;min-height:0;margin:0;
+  border-left:2px solid #d3aa65;
+  background:linear-gradient(165deg,#163846,#0b2534 52%,#071721);
+  box-shadow:-14px 0 36px rgba(0,0,0,.72),inset 0 1px 0 rgba(255,240,195,.16);
+  padding:env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) 0;
+  color:#ebf1ee;
+}
+.gnz-mobile-city-sheet .gnz-city-yields{
+  flex-wrap:nowrap;min-height:35px;overflow-x:auto;overscroll-behavior-x:contain;
+  scrollbar-width:thin;scrollbar-color:#ac8451 #0b2735;
+}
+.gnz-mobile-city-sheet .gnz-city-yield{
+  flex:0 0 auto;min-height:31px;padding:4px 7px;border-color:#886a43;
+  border-radius:8px;background:#102d3a;
+}
+.gnz-mobile-city-sheet .gnz-city-tabs{flex-shrink:0;background:#081b27;}
+.gnz-mobile-city-sheet .gnz-city-tabs button{min-height:39px;padding:6px;font-size:12px;}
+.gnz-mobile-city-sheet .gnz-city-content{overscroll-behavior:contain;scrollbar-width:thin;
+  scrollbar-color:#b59255 #0e2533;}
+.gnz-mobile-city-sheet .gnz-city-close{touch-action:manipulation;}
+.gnz-mobile-pause .gnz-panel{gap:8px;}
+.gnz-mobile-pause .gnz-menu-btn{border-color:#c2a171;}
+.gnz-mobile-pause button{min-width:0;touch-action:manipulation;}
+.gnz-mobile-pause .gnz-heading{font-size:19px;}
+@media (orientation:landscape) and (max-height:440px){
+  .gnz-mobile-city-sheet>div>.gnz-city-yields{min-height:32px;}
+  .gnz-mobile-city-sheet .gnz-city-tabs button{min-height:35px;padding:4px;}
+  .gnz-mobile-city-sheet .gnz-city-content{padding:7px;}
+  .gnz-mobile-pause .gnz-panel{padding:9px;}
+}

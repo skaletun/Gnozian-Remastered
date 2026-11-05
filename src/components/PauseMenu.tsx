@@ -41,41 +41,41 @@ export default function PauseMenu({
     >
       <motion.div
         {...modalCardMotion}
-        className={`mx-auto w-full ${mobile ? 'max-h-[90vh] max-w-[min(98vw,26rem)] overflow-y-auto' : 'max-w-[min(96vw,40rem)]'}`}
+        className={`mx-auto w-full ${mobile ? 'gnz-mobile-pause max-h-[calc(100dvh-12px)] max-w-[min(96vw,35rem)] overflow-y-auto' : 'max-w-[min(96vw,40rem)]'}`}
         onClick={e => e.stopPropagation()}
       >
-        <GnzPanel ornament className={mobile ? 'p-4' : 'p-6'}>
+        <GnzPanel ornament className={mobile ? 'p-3' : 'p-6'}>
           <h2 className={`gnz-heading text-center font-black ${mobile ? 'text-xl' : 'text-2xl'}`}>{t('pause.title')}</h2>
           <p className="gnz-subtle text-center text-xs">{t('pause.hint')}</p>
-          <div className={`grid gap-4 ${mobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
-            <div className="flex flex-col gap-3">
-              <GnzButton audioOnClick variant="secondary" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'py-3.5' : 'py-3'}`} onClick={onResume}>
+          <div className={`grid ${mobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 gap-4'}`}>
+            <div className={mobile ? 'flex flex-col gap-2' : 'flex flex-col gap-3'}>
+              <GnzButton audioOnClick variant="secondary" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'min-h-10 px-2.5 py-1.5 text-xs' : 'py-3'}`} onClick={onResume}>
                 <GnozianGlyph name="play" size={16} className="text-emerald-200/90" />
                 {t('pause.resume')}
               </GnzButton>
-              <GnzButton audioOnClick variant="secondary" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'py-3.5' : 'py-3'}`} onClick={onSave}>
+              <GnzButton audioOnClick variant="secondary" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'min-h-10 px-2.5 py-1.5 text-xs' : 'py-3'}`} onClick={onSave}>
                 <GnozianGlyph name="save" size={16} className="text-sky-200/90" />
                 {t('pause.save')}
               </GnzButton>
-              <GnzButton audioOnClick variant="danger" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'py-3.5' : 'py-3'}`} onClick={tryMainMenu}>
+              <GnzButton audioOnClick variant="danger" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'min-h-10 px-2.5 py-1.5 text-xs' : 'py-3'}`} onClick={tryMainMenu}>
                 <GnozianGlyph name="door" size={16} className="text-red-200/90" />
                 {t('pause.mainMenu')}
               </GnzButton>
             </div>
-            <div className="flex flex-col gap-3">
-              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'py-3.5' : 'py-3'}`} onClick={onOpenSettings}>
+            <div className={mobile ? 'flex flex-col gap-2' : 'flex flex-col gap-3'}>
+              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'min-h-10 px-2.5 py-1.5 text-xs' : 'py-3'}`} onClick={onOpenSettings}>
                 <GnozianGlyph name="gear" size={16} className="text-stone-300" />
                 {t('pause.settings')}
               </GnzButton>
-              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'py-3.5' : 'py-3'}`} onClick={onOpenAchievements}>
+              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'min-h-10 px-2.5 py-1.5 text-xs' : 'py-3'}`} onClick={onOpenAchievements}>
                 <GnozianGlyph name="trophy" size={16} className="text-amber-300/90" />
                 {t('pause.achievements')}
               </GnzButton>
-              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'py-3.5' : 'py-3'}`} onClick={onOpenHelp}>
+              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'min-h-10 px-2.5 py-1.5 text-xs' : 'py-3'}`} onClick={onOpenHelp}>
                 <GnozianGlyph name="book" size={16} className="text-stone-300" />
                 {t('pause.help')}
               </GnzButton>
-              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'py-3.5' : 'py-3'}`} onClick={onOpenTutorial}>
+              <GnzButton audioOnClick variant="ghost" className={`flex w-full items-center justify-start gap-2 text-left ${mobile ? 'min-h-10 px-2.5 py-1.5 text-xs' : 'py-3'}`} onClick={onOpenTutorial}>
                 <GnozianGlyph name="sparkles" size={16} className="text-amber-300/90" />
                 {t('pause.tutorial')}
               </GnzButton>
