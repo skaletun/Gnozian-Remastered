@@ -47,8 +47,17 @@ async function clickVisible(locator,name){
 }
 async function main(){
   await page.goto(origin,{waitUntil:'domcontentloaded',timeout:40000});
+  // A first-ever visit intentionally opens the player profile setup before the menu.
+  // Test the real onboarding flow rather than assuming an existing localStorage save.
+  await page.locator('.rmm-root, input[maxlength="32"]').first().waitFor({timeout:40000});
+  if(await page.locator('input[maxlength="32"]').count()){
+    await shot('00-first-run-profile');
+    await page.locator('input[maxlength="32"]').fill('QA Remaster');
+    await page.getByRole('button',{name:/Далее|Continue/i}).first().click();
+    console.log('QA_ACTION first-run profile completed');
+  }
   try {
-    await page.locator('.rmm-root').waitFor({timeout:14000});
+    await page.locator('.rmm-root').waitFor({timeout:20000});
   } catch (error) {
     const diagnostic=await page.evaluate(()=>({
       url:location.href,
