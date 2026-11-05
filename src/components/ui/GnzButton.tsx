@@ -1,4 +1,5 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
+import { assetUrl } from '../../utils/assetUrl';
 import { twMerge } from 'tailwind-merge';
 import { playUiClick } from '../../audio/AudioManager';
 
@@ -29,11 +30,19 @@ export function GnzButton({
   type = 'button',
   audioOnClick = true,
   onClick,
+  style,
   ...rest
 }: GnzButtonProps) {
   return (
     <button
       type={type}
+      style={{
+        ...style,
+        '--gnz2d-bg-normal': `url("${assetUrl(`ui-2d/button-${variant}-normal.svg`)}")`,
+        '--gnz2d-bg-hover': `url("${assetUrl(`ui-2d/button-${variant}-hover.svg`)}")`,
+        '--gnz2d-bg-pressed': `url("${assetUrl(`ui-2d/button-${variant}-pressed.svg`)}")`,
+        '--gnz2d-bg-disabled': `url("${assetUrl(`ui-2d/button-${variant}-disabled.svg`)}")`,
+      } as CSSProperties}
       className={twMerge(
         `gnz-2d-button gnz-2d-button--${variant} inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-xl px-4 py-2.5 transition-all duration-150 disabled:pointer-events-none disabled:opacity-40`,
         variants[variant],
