@@ -25,7 +25,7 @@ import {
   ARMISTICE_DURATION_MAX_TURNS,
   MAX_SETTLEMENT_GOLD_PER_DIRECTION,
 } from './constants';
-import { createRng, getNeighbors, hexDistance } from './mapgen';
+import { createRng, hexDistance } from './mapgen';
 import { createFogLimitedAIAPI, createAiPerceptionState } from './aiPerception';
 import {
   aiSkillFromDifficulty,
